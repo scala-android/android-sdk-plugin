@@ -1023,23 +1023,29 @@ object Tasks {
                               , proguardLibraries
                               , dependencyClasspath
                               , platformJars
+			      , preinstalledModules
                               , classesJar
                               , binPath
                               , cacheDirectory
                               , state
                               , streams
                               ) map {
-    case (u, s, pc, l, d, (p, x), c, b, cacheDir, stat, st) =>
+    case (u, s, pc, l, d, (p, x), pm, c, b, cacheDir, stat, st) =>
 
     if (u) {
       val injars = d.filter { a =>
         val in = a.data
         (s || !in.getName.startsWith("scala-library")) &&
           !l.exists { i => i.getName == in.getName}
+      }.filterNot { a =>
+         a.get(moduleID.key).map( module => pm.exists( m =>
+               m.organization == module.organization &&
+               m.name == module.name)
+	 ).getOrElse(false)
       }.distinct :+ Attributed.blank(c)
       val extras = x map (f => file(f))
 
-      if (s && createDebug) {
+      if (s && createDebug && !pc.isEmpty) {
         st.log.debug("Proguard cache rules: " + pc)
         val deps = (cacheDir / "proguard_deps")
         val out = (cacheDir / "proguard_cache")

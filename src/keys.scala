@@ -111,6 +111,8 @@ object Keys {
     "IAndroidTarget object representing a target API level")
   val platformJars = TaskKey[(String,Seq[String])]("platform-jars",
     "Path to android.jar and optional jars (e.g. google apis), if any")
+  val preinstalledModules = SettingKey[Seq[ModuleID]]("preinstalled-modules",
+    "List of modules that are already included on the target device.")
   val buildConfigGenerator = TaskKey[Seq[File]]("build-config-generator",
     "generate BuildConfig.java")
   val rGenerator = TaskKey[Seq[File]]("r-generator",

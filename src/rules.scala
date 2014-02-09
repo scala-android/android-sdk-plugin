@@ -241,6 +241,13 @@ object Plugin extends sbt.Plugin {
       (Option(p.getOptionalLibraries) map(_ map(_.getJarPath))).getOrElse(
         Array.empty).toSeq)
     },
+    preinstalledModules     := Seq[ModuleID](
+      ModuleID("org.apache.httpcomponents", "httpcore", null),
+      ModuleID("org.apache.httpcomponents", "httpclient", null),
+      ModuleID("org.json", "json" , null),
+      ModuleID("commons-logging", "commons-logging", null),
+      ModuleID("commons-codec", "commons-codec", null)
+    ),
     projectLayout           <<= baseDirectory (ProjectLayout.apply),
     manifestPath            <<= projectLayout { l =>
       l.manifest
