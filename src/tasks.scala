@@ -658,8 +658,9 @@ object Tasks {
                         , dependencyClasspath in Compile
                         , collectJni
                         , streams
+                        , allDependencies
                         ) map {
-    (bldr, st, prj, r, d, u, m, dcp, jni, s) =>
+    (bldr, st, prj, r, d, u, m, dcp, jni, s, allDeps) =>
     val extracted = Project.extract(st)
     import extracted._
 
@@ -671,8 +672,21 @@ object Tasks {
     val logger = get(ilogger in (prj, Android))
 
     val jars = (m ++ u ++ dcp).filter {
-      a => (a.get(moduleID.key) map { mid =>
-        mid.organization != "org.scala-lang"
+      a => (a.get(moduleID.key) map {
+          case ModuleID(org, name, ver, _, _, _, _, _, _, _, _) =>
+              allDeps.find {
+                  case ModuleID(`org`, `name`, `ver`, _, _, _, _, _, _, _, _) => true
+                  case _ => false
+              } match {
+                  case Some(mod @ ModuleID("org.scala-lang", _, _, _, _, _, _, _, _, _, _)) =>
+                      s.log.debug(s"Matched scala-lang module $mod! Skipping!")
+                      false
+                  case Some(mod @ ModuleID(_, _, _, Some("provided"), _, _, _, _, _, _, _)) =>
+                      s.log.debug(s"Matched provided module $mod! Skipping!")
+                      false
+                  case _ =>
+                      true
+              }
       } getOrElse true) && a.data.exists
     }.groupBy(_.data.getName).collect {
       case ("classes.jar",xs) => xs.distinct
