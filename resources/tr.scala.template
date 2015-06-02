@@ -1,7 +1,7 @@
 package %s
 
 %s
-import android.app.{Activity,Dialog}
+import android.app.{Activity,Dialog,Fragment}
 import android.view.{View,ViewGroup,LayoutInflater}
 
 case class TypedResource[A](id: Int)
@@ -24,6 +24,8 @@ trait TypedViewHolder {
 trait TypedView extends View with TypedViewHolder
 trait TypedActivityHolder extends TypedViewHolder
 trait TypedActivity extends Activity with TypedActivityHolder
+trait TypedFragmentHolder extends TypedViewHolder
+trait TypedFragment extends Fragment with TypedFragmentHolder
 trait TypedDialog extends Dialog with TypedViewHolder
 
 class TypedLayoutInflater(l: LayoutInflater) {
@@ -39,6 +41,9 @@ object TypedResource {
   }
   implicit def activityToTyped(a: Activity) = new TypedViewHolder {
     def findViewById(id: Int) = a.findViewById(id)
+  }
+  implicit def fragmentToTyped(f: Fragment) = new TypedViewHolder {
+    def findViewById(id: Int) = f.getActivity.findViewById(id)
   }
   implicit def dialogToTyped(d: Dialog) = new TypedViewHolder {
     def findViewById(id: Int) = d.findViewById(id)
