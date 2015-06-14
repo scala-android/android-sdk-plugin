@@ -423,10 +423,11 @@ found on the #sbt-android IRC channel on Freenode
      source files is modified.
 6. If you want android-sdk-plugin to automatically sign release packages
    add the following lines to `local.properties` (or any file.properties of
-   your choice that you will not check in to source control):
+   your choice, like `project.properties`, that you will not check in to source control):
    * `key.alias: YOUR-KEY-ALIAS`
+   * `key.alias.password: YOUR-KEY-ALIAS-PASSWORD`
    * `key.store: /path/to/your/.keystore`
-   * `key.store.password: YOUR-KEY-PASSWORD`
+   * `key.store.password: YOUR-KEY-STORE-PASSWORD`
    * `key.store.type: pkcs12` (optional, defaults to `jks`)
 
 ## Advanced Usage ##
