@@ -124,7 +124,7 @@ object Keys {
     "setting indicating whether or not this is a library project")
 
   // manifest-related keys
-  val packageName = TaskKey[String]("package-name",
+  val manifestPackageName = TaskKey[String]("manifest-package-name",
     "android package name, can be changed to create a different apk package")
   val manifest = TaskKey[Elem]("manifest",
     "android manifest xml object, read-only, do not modify")

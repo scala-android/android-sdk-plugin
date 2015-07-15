@@ -908,7 +908,7 @@ object Tasks {
                                , projectLayout
                                , libraryProject
                                , libraryProjects
-                               , packageName
+                               , manifestPackageName
                                , state
                                , thisProjectRef
                                , instrumentTestRunner
@@ -1504,7 +1504,7 @@ object Tasks {
                     , thisProjectRef
                     , debugIncludesTests
                     , builder
-                    , packageName
+                    , manifestPackageName
                     , libraryProjects
                     , classDirectory
                     , externalDependencyClasspath in Compile
@@ -1607,7 +1607,7 @@ object Tasks {
     val layout = projectLayout.value
     val prj = thisProjectRef.value
     val noTestApk = debugIncludesTests.value
-    val pkg = packageName.value
+    val pkg = manifestPackageName.value
     val classes = (classDirectory in Test).value
     val st = state.value
     val s = streams.value
@@ -1695,7 +1695,7 @@ object Tasks {
   val runTaskDef: Def.Initialize[InputTask[Unit]] = Def.inputTask {
     val k = sdkPath.value
     val l = projectLayout.value
-    val p = packageName.value
+    val p = manifestPackageName.value
     val s = streams.value
     val r = Def.spaceDelimited().parsed
     val manifestXml = l.bin / "AndroidManifest.xml"
@@ -1795,7 +1795,7 @@ object Tasks {
       case s if s >= MB => "%.2fMB" format (s/MB)
     }
   }
-  val uninstallTaskDef = (sdkPath, packageName, streams) map { (k,p,s) =>
+  val uninstallTaskDef = (sdkPath, manifestPackageName, streams) map { (k,p,s) =>
     uninstallPackage(Some(s.cacheDirectory), p, k, s.log)
   }
 
