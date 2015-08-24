@@ -194,8 +194,6 @@ object Dex {
     val proguarding = (proguardDebug && debug) || (proguardRelease && !debug)
     // TODO use getIncremental in DexOptions instead
     val proguardedDexMarker = b / ".proguarded-dex"
-    // disable incremental dex on first proguardcache-hit run
-    val incrementalDex = debug && (progCache.isEmpty || !proguardedDexMarker.exists)
 
     val jarsToDex = progOut map { obfuscatedJar =>
       IO.touch(proguardedDexMarker, setModified = false)
@@ -217,8 +215,8 @@ object Dex {
       else inputs
     }
 
-    // also disable incremental on proguard run
-    (incrementalDex && !proguardedDexMarker.exists) -> jarsToDex
+    val incrementalDex = debug && (progCache.isEmpty || !proguardedDexMarker.exists)
+    incrementalDex -> jarsToDex
   }
   def dex(bldr: AndroidBuilder, dexOpts: Aggregate.Dex, pd: Seq[(File,File)],
           pg: Option[File], classes: File, minSdk: String, lib: Boolean,
