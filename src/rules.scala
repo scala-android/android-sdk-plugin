@@ -456,6 +456,7 @@ object Plugin extends sbt.Plugin {
     libraryProjects          := localProjects.value ++ apklibs.value ++ aars.value,
     libraryProject          <<= properties { p =>
       Option(p.getProperty("android.library")) exists { _.equals("true") } },
+    checkAars               <<= checkAarsTaskDef,
     dexInputs               <<= dexInputsTaskDef,
     dexAggregate            <<= dexAggregateTaskDef,
     manifestAggregate       <<= manifestAggregateTaskDef,

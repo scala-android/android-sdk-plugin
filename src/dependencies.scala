@@ -173,5 +173,41 @@ object Dependencies {
         deps map { x => x: ClasspathDep[ProjectReference] }:_*)
     }
   }
+
+  implicit class ModuleIDOps(id: ModuleID)
+  {
+    def revCovers(other: String) = {
+      def partCovers(p: (String, String)) = p._1 == p._2 || p._1 == "+"
+      val parts = id.revision.toString.split('.')
+      val otherParts = other.toString.split('.')
+      val partsCover = parts zip(otherParts) forall(partCovers)
+      partsCover && (
+        parts.length == otherParts.length ||
+        (parts.length < otherParts.length) && parts.lastOption.exists(_ == "+")
+      )
+    }
+
+    def covers(other: ModuleID) = {
+      id.organization == other.organization && id.name == other.name &&
+        revCovers(other.revision)
+    }
+  }
+
+  implicit class ProjectRefOps(project: ProjectRef)
+  (implicit struct: sbt.BuildStructure)
+  {
+    def resolved = Project.getProject(project, struct)
+
+    def deps = resolved map(_.dependencies) getOrElse(Nil) map(_.project)
+
+    def deepDeps: Seq[ProjectRef] =
+      ((deps map(_.deepDeps) flatten) :+ project).distinct
+
+    def dependsOnAar(aar: AarLibrary) = {
+      (sbt.Keys.libraryDependencies in project)
+        .get(struct.data)
+        .exists(_.find(_.covers(aar.moduleID)).isDefined)
+    }
+  }
 }
 // vim: set ts=2 sw=2 et:
