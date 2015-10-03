@@ -121,6 +121,29 @@ object Dependencies {
     }
   }
 
+  case class LibEquals[A <: AndroidLibrary](lib: A)
+  {
+    override def equals(other: Any) = {
+      (lib, other) match {
+        case (l @ AarLibrary(_), LibEquals(r @ AarLibrary(_))) ⇒
+          l.moduleID == r.moduleID
+        case (l @ LibraryProject(_), LibEquals(r @ LibraryProject(_))) ⇒
+          l.path == r.path
+        case _ ⇒ false
+      }
+    }
+  }
+
+  implicit class LibrarySeqOps[A <: AndroidLibrary](libs: Seq[A])
+  {
+    def distinctLibs = {
+      libs
+        .map(LibEquals.apply)
+        .distinct
+        .map(_.lib)
+    }
+  }
+
   object LibraryProject {
     def apply(base: File): LibraryProject = LibraryProject(ProjectLayout(base))
   }

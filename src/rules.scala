@@ -32,6 +32,7 @@ import Keys.Internal._
 import Tasks._
 import Commands._
 import BuildOutput._
+import Dependencies.LibrarySeqOps
 
 object Plugin extends sbt.Plugin {
 
@@ -105,7 +106,10 @@ object Plugin extends sbt.Plugin {
         compile in Compile <<= compile in Compile dependsOn(
           packageT in Compile in p),
         localProjects += LibraryProject((projectLayout in p).value),
-        localProjects <++= localProjects in p
+        localProjects := {
+          ((localProjects).value ++
+            (localProjects in p).value).distinctLibs
+        }
       )
     }
   }
