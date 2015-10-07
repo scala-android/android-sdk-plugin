@@ -176,20 +176,20 @@ object Dependencies {
 
   implicit class ModuleIDOps(id: ModuleID)
   {
-    def revCovers(other: String) = {
-      def partCovers(p: (String, String)) = p._1 == p._2 || p._1 == "+"
+    def revMatches(other: String) = {
+      def partMatches(p: (String, String)) = p._1 == p._2 || p._1 == "+"
       val parts = id.revision.toString.split('.')
       val otherParts = other.toString.split('.')
-      val partsCover = parts zip(otherParts) forall(partCovers)
-      partsCover && (
+      val partsMatch = parts zip(otherParts) forall(partMatches)
+      partsMatch && (
         parts.length == otherParts.length ||
         (parts.length < otherParts.length) && parts.lastOption.exists(_ == "+")
       )
     }
 
-    def covers(other: ModuleID) = {
+    def matches(other: ModuleID) = {
       id.organization == other.organization && id.name == other.name &&
-        revCovers(other.revision)
+        revMatches(other.revision)
     }
   }
 
@@ -201,12 +201,12 @@ object Dependencies {
     def deps = resolved map(_.dependencies) getOrElse(Nil) map(_.project)
 
     def deepDeps: Seq[ProjectRef] =
-      ((deps map(_.deepDeps) flatten) :+ project).distinct
+      ((deps flatMap(_.deepDeps)) :+ project).distinct
 
     def dependsOnAar(aar: AarLibrary) = {
       (sbt.Keys.libraryDependencies in project)
         .get(struct.data)
-        .exists(_.find(_.covers(aar.moduleID)).isDefined)
+        .exists(_.exists(_.covers(aar.moduleID)))
     }
   }
 }

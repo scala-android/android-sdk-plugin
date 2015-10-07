@@ -277,7 +277,7 @@ object Tasks {
       (data._1, data._2, data._2 map(revDependents))
     }
     val broken = duplicateAars.value
-    if (broken.isEmpty) log.info("All aar deps are consistent")
+    if (broken.isEmpty) log.debug("All aar deps are consistent")
     else {
       log.warn("You have duplicate aar deps with different versions:")
       broken

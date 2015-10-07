@@ -549,6 +549,7 @@ object Plugin extends sbt.Plugin {
     collectResources        <<= collectResourcesTaskDef,
     collectResources        <<= collectResources dependsOn renderscript,
     collectResources        <<= collectResources dependsOn resValuesGenerator,
+    collectResources        <<= collectResources dependsOn checkAars,
     shrinkResources          := false,
     resourceShrinker        <<= resourceShrinkerTaskDef,
     packageResources        <<= packageResourcesTaskDef,
