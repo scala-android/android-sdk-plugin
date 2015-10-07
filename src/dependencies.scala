@@ -191,6 +191,8 @@ object Dependencies {
       id.organization == other.organization && id.name == other.name &&
         revMatches(other.revision)
     }
+
+    def isAar = id.explicitArtifacts.exists(_.`type` == "aar")
   }
 
   implicit class ProjectRefOps(project: ProjectRef)
@@ -203,10 +205,19 @@ object Dependencies {
     def deepDeps: Seq[ProjectRef] =
       ((deps flatMap(_.deepDeps)) :+ project).distinct
 
-    def dependsOnAar(aar: AarLibrary) = {
+    def libraryDependencies = 
       (sbt.Keys.libraryDependencies in project)
         .get(struct.data)
-        .exists(_.exists(_.covers(aar.moduleID)))
+        .getOrElse(Nil)
+
+    def aarDependencies = libraryDependencies filter(_.isAar)
+
+    def dependsOnAar(aar: ModuleID) = {
+      aarDependencies exists(_.matches(aar))
+    }
+
+    def deepAarDeps = {
+      deepDeps flatMap(_.aarDependencies)
     }
   }
 }
