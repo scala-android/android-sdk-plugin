@@ -178,8 +178,8 @@ object Dependencies {
   {
     def revMatches(other: String) = {
       def partMatches(p: (String, String)) = p._1 == p._2 || p._1 == "+"
-      val parts = id.revision.toString.split('.')
-      val otherParts = other.toString.split('.')
+      val parts = id.revision.split('.')
+      val otherParts = other.split('.')
       val partsMatch = parts zip(otherParts) forall(partMatches)
       partsMatch && (
         parts.length == otherParts.length ||
