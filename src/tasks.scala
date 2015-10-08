@@ -260,6 +260,39 @@ object Tasks {
     }
   }
 
+  val checkAarsTaskDef = Def.task {
+    implicit val log = streams.value.log
+    implicit val struct = buildStructure.value
+    val deps = thisProjectRef.value.deepDeps
+    def revDependents(aar: ModuleID) = deps.filter(_.dependsOnAar(aar))
+    (update in Compile).all(ScopeFilter()).value
+      .flatMap(_.configuration("compile"))
+      .flatMap(_.details)
+      .map(_.modules)
+      .filter(_.length > 1)
+      .filter(_.exists(_.artifacts.exists(_._1.`type` == "aar")))
+      .map(_.map(_.module))
+      .map(data ⇒ data → data.map(revDependents))
+      .foreach { case (aars, dpd) ⇒
+        reportIncompatibleAars(aars, dpd)
+      }
+  }
+
+  def reportIncompatibleAars(aars: Seq[ModuleID], dependents: Seq[Seq[ProjectRef]])
+  (implicit log: Logger, struct: sbt.BuildStructure) = {
+    val name = aars.headOption map(_.name) getOrElse("unknown")
+    log.warn(s"Different versions for aar $name:")
+    aars zip dependents foreach { case (aar, dpd) ⇒
+      val sourceDesc =
+        if(dpd.isEmpty) "as transitive dep"
+        else {
+          val sourcePaths = dpd map(_.project) mkString(", ")
+          s"specified in $sourcePaths"
+        }
+      log.warn(s" * ${aar.revision} $sourceDesc")
+    }
+  }
+
   val typedResourcesGeneratorTaskDef = ( typedResources
                                        , rGenerator
                                        , packageForR
