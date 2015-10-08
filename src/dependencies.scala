@@ -213,7 +213,7 @@ object Dependencies {
     def aarDependencies = libraryDependencies filter(_.isAar)
 
     def dependsOnAar(aar: ModuleID) = {
-      aarDependencies exists(_.matches(aar))
+      libraryDependencies exists(_.matches(aar))
     }
 
     def deepAarDeps = {
