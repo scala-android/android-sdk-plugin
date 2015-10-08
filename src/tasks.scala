@@ -280,7 +280,7 @@ object Tasks {
 
   def reportIncompatibleAars(name: String, aars: Seq[ModuleID], dependents: Seq[Seq[ProjectRef]])
   (implicit log: Logger, struct: sbt.BuildStructure) = {
-    log.warn("Different versions for aar $name:")
+    log.warn(s"Different versions for aar $name:")
     aars zip dependents foreach { case (aar, dpd) ⇒
       val sourceDesc =
         if(dpd.isEmpty) "as transitive dep"

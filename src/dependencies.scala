@@ -205,7 +205,7 @@ object Dependencies {
     def deepDeps: Seq[ProjectRef] =
       ((deps flatMap(_.deepDeps)) :+ project).distinct
 
-    def libraryDependencies = 
+    def libraryDependencies =
       (sbt.Keys.libraryDependencies in project)
         .get(struct.data)
         .getOrElse(Nil)
