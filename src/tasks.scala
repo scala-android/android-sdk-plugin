@@ -260,6 +260,48 @@ object Tasks {
     }
   }
 
+  val duplicateAars = Def.task {
+    Resources
+      .collectdeps(libraryProjects.value)
+      .collect { case a @ AarLibrary(_) ⇒ a }
+      .groupBy(_.moduleID.name)
+      .filter(_._2.length > 1)
+  }
+
+  val checkAarsTaskDef = Def.task {
+    implicit val log = streams.value.log
+    implicit val struct = buildStructure.value
+    val deps = thisProjectRef.value.deepDeps
+    def revDependents(aar: AarLibrary) = deps.filter(_.dependsOnAar(aar))
+    def pkgDependents(data: (String, Seq[AarLibrary])) = {
+      (data._1, data._2, data._2 map(revDependents))
+    }
+    val broken = duplicateAars.value
+    if (broken.isEmpty) log.debug("All aar deps are consistent")
+    else {
+      log.warn("You have duplicate aar deps with different versions:")
+      broken
+        .map(pkgDependents)
+        .foreach { case (name, aars, dpd) ⇒
+          reportIncompatibleAars(name, aars, dpd)
+        }
+    }
+  }
+
+  def reportIncompatibleAars(name: String, aars: Seq[AarLibrary], dependents: Seq[Seq[ProjectRef]])
+  (implicit log: Logger, struct: sbt.BuildStructure) = {
+    log.warn(s"$name:")
+    aars zip dependents foreach { case (aar, dpd) ⇒
+      val sourceDesc =
+        if(dpd.isEmpty) "as transitive dep"
+        else {
+          val sourcePaths = dpd map(_.project) mkString(", ")
+          s"specified in $sourcePaths"
+        }
+      log.warn(s" * ${aar.moduleID.revision} $sourceDesc")
+    }
+  }
+
   val typedResourcesGeneratorTaskDef = ( typedResources
                                        , rGenerator
                                        , packageForR
