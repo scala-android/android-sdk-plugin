@@ -265,21 +265,22 @@ object Tasks {
     implicit val struct = buildStructure.value
     val deps = thisProjectRef.value.deepDeps
     def revDependents(aar: ModuleID) = deps.filter(_.dependsOnAar(aar))
-    def pkgDependents(data: (String, Seq[ModuleID])) = {
-      (data._1, data._2, data._2 map(revDependents))
-    }
-    thisProjectRef.value
-      .deepAarDeps
-      .groupBy(_.name)
-      .filter(_._2.length > 1)
-      .map(pkgDependents)
-      .foreach { case (name, aars, dpd) ⇒
-        reportIncompatibleAars(name, aars, dpd)
+    (update in Compile).all(ScopeFilter()).value
+      .flatMap(_.configuration("compile"))
+      .flatMap(_.details)
+      .map(_.modules)
+      .filter(_.length > 1)
+      .filter(_.exists(_.artifacts.exists(_._1.`type` == "aar")))
+      .map(_.map(_.module))
+      .map(data ⇒ data → data.map(revDependents))
+      .foreach { case (aars, dpd) ⇒
+        reportIncompatibleAars(aars, dpd)
       }
   }
 
-  def reportIncompatibleAars(name: String, aars: Seq[ModuleID], dependents: Seq[Seq[ProjectRef]])
+  def reportIncompatibleAars(aars: Seq[ModuleID], dependents: Seq[Seq[ProjectRef]])
   (implicit log: Logger, struct: sbt.BuildStructure) = {
+    val name = aars.headOption map(_.name) getOrElse("unknown")
     log.warn(s"Different versions for aar $name:")
     aars zip dependents foreach { case (aar, dpd) ⇒
       val sourceDesc =
