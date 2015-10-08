@@ -128,7 +128,7 @@ object Dependencies {
         case (l @ AarLibrary(_), LibEquals(r @ AarLibrary(_))) ⇒
           l.moduleID == r.moduleID
         case (l @ LibraryProject(_), LibEquals(r @ LibraryProject(_))) ⇒
-          l.path == r.path
+          l.path.getCanonicalFile == r.path.getCanonicalFile
         case _ ⇒ false
       }
     }
