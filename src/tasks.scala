@@ -269,7 +269,7 @@ object Tasks {
       (data._1, data._2, data._2 map(revDependents))
     }
     thisProjectRef.value
-      .deepLibDeps
+      .deepAarDeps
       .groupBy(_.name)
       .filter(_._2.length > 1)
       .map(pkgDependents)

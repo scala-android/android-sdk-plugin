@@ -210,12 +210,14 @@ object Dependencies {
         .get(struct.data)
         .getOrElse(Nil)
 
+    def aarDependencies = libraryDependencies filter(_.isAar)
+
     def dependsOnAar(aar: ModuleID) = {
       libraryDependencies exists(_.matches(aar))
     }
 
-    def deepLibDeps = {
-      deepDeps flatMap(_.libraryDependencies)
+    def deepAarDeps = {
+      deepDeps flatMap(_.aarDependencies)
     }
   }
 }
