@@ -205,6 +205,11 @@ object Keys {
   val rsOptimLevel = settingKey[Int]("renderscript optimization level, default: 3") in Android
   val renderscript = TaskKey[Seq[File]]("renderscript", "android renderscript source-gen task") in Android
 
+  // jack/jill
+  val useJack = SettingKey[Boolean](
+    "use Jack/Jill as build toolchain instead of dex+proguard. default: false"
+  ) in Android
+
   // dex-related keys
   val dexLegacyMode = TaskKey[Boolean]("dex-legacy-mode",
     "disables dex optimizations: predex and sharding, true on minSdkVersion<21") in Android

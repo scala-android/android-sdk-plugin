@@ -859,13 +859,14 @@ object Tasks {
                          , proguardInputs
                          , proguardAggregate
                          , retrolambdaAggregate
+                         , useJack
                          , dexMulti
                          , projectLayout
                          , outputLayout
                          , dependencyClasspath
                          , apkbuildDebug
                          , streams) map {
-    (progOut, in, pa, ra, multiDex, b, o, deps, debug, s) =>
+    (progOut, in, pa, ra, useJack, multiDex, b, o, deps, debug, s) =>
       implicit val output = o
       Dex.dexInputs(progOut, in, pa, ra, multiDex, b.dex, deps, b.classesJar, debug(), s)
   }
@@ -886,19 +887,27 @@ object Tasks {
       dexInProcess.value, buildTools.value, dexAdditionalParams.value)
   }
 
-  val dexTaskDef = ( builder
-                   , dexAggregate
-                   , dexShards
-                   , predex
-                   , dexLegacyMode
-                   , libraryProject
-                   , projectLayout
-                   , outputLayout
-                   , apkbuildDebug
-                   , streams) map {
-    case (bldr, dexOpts, shards, pd, legacy, lib, bin, o, d, s) =>
-      implicit val output = o
-      Dex.dex(bldr(s.log), dexOpts, pd, None /* unused, left for compat */, legacy, lib, bin.dex, shards, d(), s)
+  val dexTaskDef = Def.task {
+    val bldr = builder.value
+    val dexOpts =  dexAggregate.value
+    val shards =  dexShards.value
+    val pd =  predex.value
+    val legacy =  dexLegacyMode.value
+    val lib =  libraryProject.value
+    val bin =  projectLayout.value
+    implicit val output =  outputLayout.value
+    val debug =  apkbuildDebug.value
+    val s =  streams.value
+    val minSdk = minSdkVersion.value
+    val pa = proguardAggregate.value
+    val ra = retrolambdaAggregate.value
+    val pi = proguardInputs.value
+
+    if (useJack.value) {
+      Jack.makeDex(bldr(s.log), dexOpts, pd, bin, debug(), lib, minSdk, pa, ra, pi, s)
+    } else {
+      Dex.dex(bldr(s.log), dexOpts, pd, None /* unused, left for compat */ , legacy, lib, bin.dex, shards, debug(), s)
+    }
   }
 
   val predexTaskDef = Def.task {
@@ -914,26 +923,38 @@ object Tasks {
     val pg = proguard.value
     val s = streams.value
     val bldr = builder.value(s.log)
-    Dex.predex(opts,
-      inputs.map(_.getCanonicalFile) filterNot skip,
-      multiDex || shards, legacy, classes, pg, bldr, baseDirectory.value, layout.predex, s)
+
+    if (useJack.value) {
+      Jack.jill(bldr, inputs.map(_.getCanonicalFile).filterNot(_ == classes),
+        baseDirectory.value, layout.predex, opts, s)
+    } else {
+      Dex.predex(opts,
+        inputs.map(_.getCanonicalFile) filterNot skip,
+        multiDex || shards, legacy, classes, pg, bldr, baseDirectory.value, layout.predex, s)
+    }
   }
 
   val proguardInputsTaskDef = ( proguardAggregate
                               , proguardLibraries
                               , dependencyClasspath
                               , platformJars
+                              , useJack
                               , projectLayout
                               , outputLayout
                               , apkbuildDebug
                               , streams
                               ) map {
-    case (pa, l, d, (p, x), c, o, dbg, st) =>
+    case (pa, l, d, (p, x), useJack, c, o, debug, st) => {
       implicit val output = o
-      Proguard.proguardInputs(
-        (pa.useProguard && !dbg()) || (pa.useProguardInDebug && dbg()),
-        pa.proguardOptions, pa.proguardConfig,
-        l, d, p, x, c.classesJar, pa.proguardScala, pa.proguardCache, dbg(), st)
+      if (useJack) {
+        ProguardInputs(Proguard.collectInjars(l, d, pa.proguardScala, c.classesJar), Proguard.libraryJars(p, x, l))
+      } else {
+        Proguard.proguardInputs(
+          (pa.useProguard && !debug()) || (pa.useProguardInDebug && debug()),
+          pa.proguardOptions, pa.proguardConfig,
+          l, d, p, x, c.classesJar, pa.proguardScala, pa.proguardCache, debug(), st)
+      }
+    }
   }
 
   val resourceShrinkerTaskDef = Def.task {
@@ -974,6 +995,7 @@ object Tasks {
   val proguardTaskDef: Def.Initialize[Task[Option[File]]] =
       ( proguardAggregate
       , builder
+      , useJack
       , libraryProject
       , proguardInputs
       , apkbuildDebug
@@ -981,9 +1003,13 @@ object Tasks {
       , outputLayout
       , retrolambdaAggregate
       , streams
-      ) map { case (a, bldr, l, inputs, d, b, output, ra, s) =>
+      ) map { case (a, bldr, useJack, l, inputs, debug, b, output, ra, s) =>
         implicit val o = output
-        Proguard.proguard(a, bldr(s.log), l, inputs, d(), b.proguardOut, ra, s)
+        if (useJack) {
+          None
+        } else {
+          Proguard.proguard(a, bldr(s.log), l, inputs, debug(), b.proguardOut, ra, s)
+        }
   }
 
   case class TestListener(log: Logger) extends ITestRunListener {

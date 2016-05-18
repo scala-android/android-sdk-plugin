@@ -616,6 +616,7 @@ object Plugin extends sbt.Plugin with PluginFail {
     typedResourcesGenerator <<= typedResourcesGeneratorTaskDef,
     useProguard             <<= proguardScala,
     useProguardInDebug      <<= proguardScala,
+    useJack                  := false,
     extraResDirectories         := Nil,
     extraAssetDirectories       := Nil,
     renderVectorDrawables    := true,

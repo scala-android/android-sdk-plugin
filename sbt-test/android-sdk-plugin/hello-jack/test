@@ -1,0 +1,3 @@
+> android:package
+$ exists target/android/intermediates/dex/classes.dex
+$ exists target/android/intermediates/dex/classes.jack
