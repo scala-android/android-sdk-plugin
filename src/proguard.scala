@@ -62,6 +62,18 @@ object ProguardUtil {
 object Proguard {
   import ProguardUtil._
 
+  def collectInjars(l: Seq[File], d: sbt.Def.Classpath, s: Boolean, c: File): Seq[Attributed[File]] = d.filter { a =>
+    val in = a.data
+    (s || !in.getName.startsWith("scala-library")) &&
+        !l.exists { i => i.getName == in.getName} &&
+        in.isFile
+  }.distinct :+ Attributed.blank(c)
+
+  def libraryJars(p: String, x: Seq[String], l: Seq[File]) = {
+    def extras = x map file
+    file(p) +: (extras ++ l)
+  }
+
   def proguardInputs(u: Boolean, pgOptions: Seq[String], pgConfig: Seq[String],
                      l: Seq[File], d: sbt.Def.Classpath, p: String,
                      x: Seq[String], c: File, s: Boolean, pc: Seq[String],
@@ -69,12 +81,7 @@ object Proguard {
 
     val cacheDir = st.cacheDirectory
     if (u) {
-      val injars = d.filter { a =>
-        val in = a.data
-        (s || !in.getName.startsWith("scala-library")) &&
-          !l.exists { i => i.getName == in.getName} &&
-          in.isFile
-      }.distinct :+ Attributed.blank(c)
+      val injars = collectInjars(l, d, s, c)
       val extras = x map (f => file(f))
 
       if (debug && pc.nonEmpty) {
@@ -115,8 +122,8 @@ object Proguard {
           in
         }(cacheJars map (_.data))
 
-        ProguardInputs(injars, file(p) +: (extras ++ l), Some(cacheJar))
-      } else ProguardInputs(injars, file(p) +: (extras ++ l))
+        ProguardInputs(injars, libraryJars(p, x, l), Some(cacheJar))
+      } else ProguardInputs(injars, libraryJars(p, x, l))
     } else
       ProguardInputs(Seq.empty,Seq.empty)
   }
@@ -136,23 +143,12 @@ object Proguard {
       s.log.info("[debug] cache hit, skipping proguard!")
       None
     } else if ((p && !debug && !l) || ((d && debug) && !l)) {
-      val libjars = inputs.libraryjars
       val pjars = inputs.injars map (_.data)
       val jars = if (re && RetrolambdaSupport.isAvailable)
         RetrolambdaSupport(b, pjars, ra.classpath, ra.bootClasspath, s) else pjars
       val t = b / "classes.proguard.jar"
 
-      val libraryjars = for {
-        j <- libjars
-        a <- Seq("-libraryjars", j.getAbsolutePath)
-      } yield a
-      val injars = "-injars " + (jars map {
-        _.getPath + "(!META-INF/**,!rootdoc.txt)"
-      } mkString File.pathSeparator)
-      val outjars = "-outjars " + t.getAbsolutePath
-      val printmappings = Seq("-printmapping",
-        (b / "mappings.txt").getAbsolutePath)
-      val cfg = c ++ o ++ libraryjars ++ printmappings :+ injars :+ outjars
+      val cfg = buildFullConfig(a, ra, inputs, b, s)
       val ruleCache = s.cacheDirectory / "proguard-rules.hash"
       val cacheHash = Try(IO.read(ruleCache)).toOption getOrElse ""
       val rulesHash = Hash.toHex(Hash(cfg mkString "\n"))
@@ -191,5 +187,33 @@ object Proguard {
     val pg = pgCtor.newInstance(pgcfg).asInstanceOf[ProG]
     pg.execute()
   }
-}
 
+  def buildFullConfig(a: Aggregate.Proguard, ra: Aggregate.Retrolambda,
+                      inputs: ProguardInputs, b: File,
+                      s: sbt.Keys.TaskStreams): Seq[String] = {
+    val libjars = inputs.libraryjars
+    val jars = jarsClasspath(inputs, b, ra, s)
+    val t = b / "classes.proguard.jar"
+
+    val libraryjars = for {
+      j <- libjars
+      a <- Seq("-libraryjars", j.getAbsolutePath)
+    } yield a
+    val injars = jars map {
+      "-injars " + _.getPath + "(!META-INF/**,!rootdoc.txt)"
+    }
+    val outjars = "-outjars " + t.getAbsolutePath
+    val printmappings = Seq("-printmapping", mappingsFile(b))
+
+    a.proguardConfig ++ a.proguardOptions ++ libraryjars ++ printmappings ++ injars :+ outjars
+  }
+
+  def jarsClasspath(inputs: ProguardInputs, b: File, ra: Aggregate.Retrolambda, s: sbt.Keys.TaskStreams) = {
+    val pjars = inputs.injars map (_.data)
+    if (ra.enable && RetrolambdaSupport.isAvailable)
+      RetrolambdaSupport(b, pjars, ra.classpath, ra.bootClasspath, s)
+    else pjars
+  }
+
+  def mappingsFile(b: File) = (b / "mappings.txt").getAbsolutePath
+}

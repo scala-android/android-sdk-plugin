@@ -131,7 +131,10 @@ object Packaging {
       ))
       (collectJniOut ** FileOnlyFilter).get.toSet
     }((jniFolders.flatMap(_ ** FileOnlyFilter get) ++ jars).toSet)
-    bldr.packageApk(shrinker.getAbsolutePath, (dexFolder +: predexed).toSet.asJava,
+
+    bldr.packageApk(
+      shrinker.getAbsolutePath,
+      (dexFolder +: predexed).toSet.asJava,
       List(collectResourceFolder).filter(_.exists).asJava,
       List(collectJniOut).filter(_.exists).asJava,
       abiFilter.asJava, debug,
