@@ -1,29 +1,29 @@
 package android
 
-import android.Dependencies.{AarLibrary, ApkLibrary, LibraryDependency}
+import scala.util.Try
+import scala.util.matching.Regex
+import scala.xml.XML
+import scala.collection.JavaConverters._
+
 import com.android.builder.core.{AndroidBuilder, VariantType}
 import com.android.builder.model.{AaptOptions, AndroidLibrary}
 import com.android.builder.png.VectorDrawableRenderer
-import com.android.ide.common.res2._
-import com.android.resources.Density
-import com.android.utils.ILogger
-import sbt.Keys.TaskStreams
-import sbt.{File, _}
-
-import collection.JavaConverters._
-import language.postfixOps
-import Dependencies.LibrarySeqOps
 import com.android.builder.dependency.level2.AndroidDependency
 import com.android.builder.internal.aapt.{Aapt, AaptPackageConfig}
 import com.android.builder.internal.aapt.v1.AaptV1
 import com.android.builder.internal.aapt.v2.OutOfProcessAaptV2
+import com.android.ide.common.res2._
 import com.android.ide.common.process.DefaultProcessExecutor
 import com.android.sdklib.BuildToolInfo
-import sbt.classpath.ClasspathUtilities
+import com.android.resources.Density
+import com.android.utils.ILogger
 
-import scala.util.Try
-import scala.util.matching.Regex
-import scala.xml.XML
+import sbt.Keys.TaskStreams
+import sbt.{File, _}
+import sbt.internal.inc.classpath.ClasspathUtilities
+import sbt.util.CacheStoreFactory
+
+import android.Dependencies.{AarLibrary, ApkLibrary, LibraryDependency, LibrarySeqOps}
 
 object Resources {
   val ANDROID_NS = "http://schemas.android.com/apk/res/android"
@@ -140,8 +140,11 @@ object Resources {
       }
     }
 
-    val inputs = (respaths flatMap { case (_,r) => (r ***) get }) filter (n =>
-      !n.getName.startsWith(".") && !n.getName.startsWith("_"))
+    val inputs =
+      respaths
+        .flatMap { case (_,r) => r.allPaths.get }
+        .filter(n => !n.getName.startsWith(".") && !n.getName.startsWith("_"))
+
     var needsFullResourceMerge = false
 
     FileFunction.cached(cache / "nuke-res-if-changed", FilesInfo.lastModified) { in =>
@@ -149,14 +152,20 @@ object Resources {
       IO.delete(resTarget)
       in
     }(nonGeneratingRes)
-    FileFunction.cached(cache / "collect-resources")(
-      FilesInfo.lastModified, FilesInfo.exists) { (inChanges,outChanges) =>
-      s.log.info("Collecting resources")
 
-      incrResourceMerge(layout, minSdk, resTarget, isLib, cache / "collect-resources",
-                        logger, bldr, sets, pngcrunch, png9crunch, vectorprocessor, inChanges, needsFullResourceMerge, s.log)
-      ((resTarget ** FileOnlyFilter).get ++ (layout.generatedVectors ** FileOnlyFilter).get).toSet
-    }(inputs.toSet)
+    FileFunction.cached(
+      CacheStoreFactory(cache / "collect-resources"),
+      FilesInfo.lastModified,
+      FilesInfo.exists) { (inChanges, outChanges) =>
+
+        s.log.info("Collecting resources")
+
+        incrResourceMerge(
+          layout, minSdk, resTarget, isLib, cache / "collect-resources", logger, bldr,
+          sets, pngcrunch, png9crunch, vectorprocessor, inChanges, needsFullResourceMerge, s.log)
+
+        ((resTarget ** FileOnlyFilter).get ++ (layout.generatedVectors ** FileOnlyFilter).get).toSet
+       }(inputs.toSet)
 
     (assetBin, resTarget)
   }
@@ -222,7 +231,7 @@ object Resources {
             status match {
               case FileStatus.NEW =>
               case FileStatus.CHANGED =>
-                if (targetFile.exists) IO.copy(copy, false, true)
+                if (targetFile.exists) IO.copy(copy, overwrite = false, preserveLastModified = true, preserveExecutable = true)
               case FileStatus.REMOVED => targetFile.delete()
             }
             // end workaround
@@ -266,7 +275,7 @@ object Resources {
     mergeTemp.mkdirs()
     val l = SbtILogger()
     l(logger)
-    val aaptv1 = new AaptV1(new DefaultProcessExecutor(l), SbtProcessOutputHandler(logger), bldr.getTarget.getBuildToolInfo, l, AaptV1.PngProcessMode.ALL, 2)
+    val _ = new AaptV1(new DefaultProcessExecutor(l), SbtProcessOutputHandler(logger), bldr.getTarget.getBuildToolInfo, l, AaptV1.PngProcessMode.ALL, 2)
     new MergedResourceWriter(resTarget,
       layout.publicTxt, layout.mergeBlame, preprocessor, makeAapt(bldr,
         bldr.getTarget.getBuildToolInfo,
@@ -439,14 +448,14 @@ object Resources {
       FileFunction.cached(s.cacheDirectory / "typed-resources-generator", FilesInfo.hash) { in =>
         if (in.nonEmpty) {
           s.log.info("Regenerating TR.scala because R.java has changed")
-          val layouts = (r ** "layout*" ** "*.xml" get) ++
+          val layouts = (r ** "layout*" ** "*.xml").get ++
             (for {
               lib <- l filterNot {
                 case a: AarLibrary       => !includeAar
                 case p: Dependencies.Pkg => ignores(p.pkg)
                 case _                   => false
               }
-              xml <- lib.getResFolder ** "layout*" ** "*.xml" get
+              xml <- (lib.getResFolder ** "layout*" ** "*.xml").get
             } yield xml)
 
           s.log.debug("Layouts: " + layouts)
@@ -660,7 +669,7 @@ object Resources {
   def attributeText(n: xml.Node, attr: String): Option[String] =
     n.attribute(attr).flatMap(_.headOption).map(_.text)
   def processValuesXml(resdirs: Seq[File], s: TaskStreams): ResourceMap = {
-    val valuesxmls = resdirs flatMap { d => d * "values*" * "*.xml" get }
+    val valuesxmls = resdirs flatMap { d => (d * "values*" * "*.xml").get }
     val rms = valuesxmls.map { xml =>
       val values = XML.loadFile(xml)
 
@@ -712,7 +721,7 @@ object Resources {
   }
 
   def processMenuItems(resdirs: Seq[File], re: Regex, s: TaskStreams): ResourceMap = {
-    val menuxmls = resdirs flatMap { d => d * "menu" * "*.xml" get }
+    val menuxmls = resdirs flatMap { d => (d * "menu" * "*.xml").get }
     val menuItems = for {
       b      <- menuxmls
       menu  = XML loadFile b
@@ -804,10 +813,10 @@ object Resources {
         case p: Dependencies.Pkg => ig(p.pkg)
         case _ => false
       }
-      val files = (layout.res ** "layout*" ** "*.xml" get) ++
+      val files = (layout.res ** "layout*" ** "*.xml").get ++
         (for {
           lib <- libsToProcess
-          xml <- lib.getResFolder ** "layout*" ** "*.xml" get
+          xml <- (lib.getResFolder ** "layout*" ** "*.xml").get
         } yield xml)
 
 

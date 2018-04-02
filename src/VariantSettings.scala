@@ -1,6 +1,9 @@
 package android
 
 import sbt._
+import sbt.compat.Load
+import sbt.internal.{BuildStructure, SessionSettings}
+
 import VariantSettings._
 
 /**
@@ -46,9 +49,9 @@ object VariantSettings {
       override def apply[T](a: Def.ScopedKey[T]) = {
         val scope0 = if (a.scope.project == This)
           a.scope.copy(project = Select(prj)) else a.scope
-        val scope1 = if (scope0.task == This) scope0.copy(task = Global) else scope0
-        val scope2 = if (scope1.extra == This) scope1.copy(extra = Global) else scope1
-        val scope3 = if (scope2.config == This) scope2.copy(config = Global) else scope2
+        val scope1 = if (scope0.task == This)   scope0.copy(task = Zero)   else scope0
+        val scope2 = if (scope1.extra == This)  scope1.copy(extra = Zero)  else scope1
+        val scope3 = if (scope2.config == This) scope2.copy(config = Zero) else scope2
         a.copy(scope = scope3)
       }
     }
@@ -143,7 +146,6 @@ object VariantSettings {
       private[this] val ref = new java.lang.ref.WeakReference(s.globalLogging.full)
       private[this] def slog: Logger = Option(ref.get) getOrElse sys.error("Settings logger used after project was loaded.")
 
-      override val ansiCodesSupported = slog.ansiCodesSupported
       override def trace(t: => Throwable) = slog.trace(t)
       override def success(message: => String) = slog.success(message)
       override def log(level: Level.Value, message: => String) = slog.log(level, message)
@@ -175,17 +177,15 @@ object VariantSettings {
     if (hasExplicitGlobalLogLevels(s))
       s
     else {
-      val logging = s.globalLogging
-      def get[T](key: SettingKey[T]) = key in GlobalScope get data
-      def transfer(l: AbstractLogger, traceKey: SettingKey[Int], levelKey: SettingKey[Level.Value]) {
-        get(traceKey).foreach(l.setTrace)
-        get(levelKey).foreach(l.setLevel)
-      }
-      logging.full match {
-        case a: AbstractLogger => transfer(a, sbt.Keys.traceLevel, sbt.Keys.logLevel)
-        case _                 => ()
-      }
-      transfer(logging.backed, sbt.Keys.persistTraceLevel, sbt.Keys.persistLogLevel)
+      // FIXME: https://github.com/sbt/sbt/blob/05c2c506b2b218d8ed8befcef843951391c07be6/main/src/main/scala/sbt/internal/LogManager.scala#L204-L222
+      //def get[T](key: SettingKey[T]) = key in GlobalScope get data
+      //def transfer(l: AbstractLogger, traceKey: SettingKey[Int], levelKey: SettingKey[Level.Value]) {
+      //  get(traceKey).foreach(l.setTrace)
+      //  get(levelKey).foreach(l.setLevel)
+      //}
+      //val logging = s.globalLogging
+      //transfer(logging.full, sbt.Keys.traceLevel, sbt.Keys.logLevel)
+      //transfer(logging.backed, sbt.Keys.persistTraceLevel, sbt.Keys.persistLogLevel)
       s
     }
 

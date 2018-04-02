@@ -18,8 +18,8 @@ object MyProjectBuild extends Build {
   lazy val geophon = Project(id = "app2", base = file("app2")).androidBuildWith(guidemate_lib).settings(appSettings :_*)
 
   val guidemate_lib = Project(id = "lib",
-    base = file("lib-with-resources")).settings(
-    android.Plugin.androidBuildAar: _*)
+    base = file("lib-with-resources"))
+    .enablePlugins(AndroidLib)
     .settings(libraryDependencies ++= Seq(
                         "org.scalatest" % "scalatest_2.10" % "1.9.1" % "test",
                         "com.pivotallabs" % "robolectric" % "1.1" % "test",

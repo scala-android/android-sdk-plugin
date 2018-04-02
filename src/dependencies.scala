@@ -9,6 +9,7 @@ import BuildOutput._
 import com.android.builder.dependency.level2.AndroidDependency
 import com.android.builder.model.{AndroidLibrary, JavaLibrary, MavenCoordinates}
 import com.android.manifmerger.ManifestProvider
+import sbt.internal.BuildStructure
 
 object Dependencies {
   // excludes are temporary until everything/one uses libraryDependencies

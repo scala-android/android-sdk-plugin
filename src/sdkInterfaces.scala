@@ -159,11 +159,12 @@ object SbtJavaProcessExecutor extends JavaProcessExecutor {
       case SbtProcessOutputHandler(logger) => sbt.LoggedOutput(logger)
       case _ => sbt.CustomOutput(processOutputHandler.createOutput.getStandardOutput)
     })
-    val options = ForkOptions(
-      envVars = javaProcessInfo.getEnvironment.asScala.map { case ((x, y)) => x -> y.toString }.toMap,
-      outputStrategy = outputStrategy,
-      runJVMOptions = javaProcessInfo.getJvmArgs.asScala ++
-        ("-cp" :: javaProcessInfo.getClasspath :: Nil))
+    val options =
+      ForkOptions()
+        .withEnvVars(javaProcessInfo.getEnvironment.asScala.map { case ((x, y)) => x -> y.toString }.toMap)
+        .withOutputStrategy(outputStrategy)
+        .withRunJVMOptions(javaProcessInfo.getJvmArgs.asScala.toVector ++ ("-cp" :: javaProcessInfo.getClasspath :: Nil))
+
     val args = (javaProcessInfo.getMainClass :: Nil) ++ javaProcessInfo.getArgs.asScala
     val r = Fork.java(options, args)
 

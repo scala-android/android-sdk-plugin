@@ -69,10 +69,10 @@ object AndroidLint {
                              strict: Boolean,
                              s: TaskStreams) extends Reporter(_client, null) {
     lazy val fmt = new MessageFormat("{0} {1}{0,choice,0#s|1#|1<s}")
-    def fmtE(n: Int) = fmt.format(Array(n, "error"),   new StringBuffer, null)
-    def fmtW(n: Int) = fmt.format(Array(n, "warning"), new StringBuffer, null)
+    def fmtE(n: Int): StringBuffer = fmt.format(Array(n, "error"),   new StringBuffer, null)
+    def fmtW(n: Int): StringBuffer = fmt.format(Array(n, "warning"), new StringBuffer, null)
 
-    override def write(stats: Reporter.Stats, issues: util.List[Warning]) = {
+    override def write(stats: Reporter.Stats, issues: util.List[Warning]): Unit = {
       val errorCount = stats.errorCount
       val warningCount = stats.warningCount
 

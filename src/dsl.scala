@@ -4,7 +4,6 @@ import java.io.File
 import sbt.{Configuration, Task, Def, Setting}
 
 import scala.language.experimental.macros
-import scala.util.{Failure, Success, Try}
 
 package object dsl {
   def list[A](body: Seq[A]): List[A] = macro dsl.Macros.listImplN[A]
@@ -127,13 +126,13 @@ package object dsl {
 }
 package dsl {
 private[android] object Macros {
-  import scala.reflect.macros.Context
+  import scala.reflect.macros.blackbox.Context
 
   def listImplN[A](c: Context)(body: c.Expr[Seq[A]])(implicit ev: c.WeakTypeTag[A]): c.Expr[List[A]] = {
     import c.universe._
     val xs = body.tree.children
     if (xs.isEmpty)
-      c.Expr[List[A]](Apply(Select(body.tree, newTermName("toList")), Nil))
+      c.Expr[List[A]](Apply(Select(body.tree, TermName("toList")), Nil))
     else
       commonImpl(c)(body)
   }
@@ -144,7 +143,7 @@ private[android] object Macros {
     import c.universe._
     val xs = body.tree.children
     if (xs.isEmpty)
-      c.Expr[List[A]](Apply(Ident(newTermName("List")), body.tree :: Nil))
+      c.Expr[List[A]](Apply(Ident(TermName("List")), body.tree :: Nil))
     else
       commonImpl(c)(body)
   }
@@ -154,12 +153,12 @@ private[android] object Macros {
     val seqA = c.weakTypeOf[Seq[A]]
     c.Expr[List[A]](body.tree.children.reduce { (a,ch) =>
         val acc = if (a.tpe != null && a.tpe <:< ev.tpe) {
-          Apply(Ident(newTermName("List")), a :: Nil)
+          Apply(Ident(TermName("List")), a :: Nil)
         } else a
         if (ch.tpe <:< seqA)
-          Apply(Select(acc, newTermName("$plus$plus")), List(ch))
+          Apply(Select(acc, TermName("$plus$plus")), List(ch))
         else if (ch.tpe <:< ev.tpe)
-          Apply(Select(acc, newTermName("$colon$plus")), List(ch))
+          Apply(Select(acc, TermName("$colon$plus")), List(ch))
         else c.abort(ch.pos, s"Unexpected type: ${ch.tpe}, needed ${ev.tpe}")
       })
   }

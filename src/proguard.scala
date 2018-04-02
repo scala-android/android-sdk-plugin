@@ -4,13 +4,13 @@ import java.io.{File, FileInputStream, FileOutputStream}
 import java.lang.reflect.{Constructor, Method}
 import java.util.jar.{JarInputStream, JarOutputStream}
 
-import com.android.builder.core.AndroidBuilder
-import sbt._
-import sbt.classpath.ClasspathUtilities
-
-import scala.language.postfixOps
 import scala.util.Try
-import language.existentials
+
+import com.android.builder.core.AndroidBuilder
+
+import sbt._
+import sbt.io.Using
+import sbt.internal.inc.classpath.ClasspathUtilities
 
 case class ProguardInputs(injars: Seq[Attributed[File]],
                           libraryjars: Seq[File],
@@ -49,11 +49,12 @@ object ProguardUtil {
     if (!jarfile.data.isFile) Nil
     else {
       Using.fileInputStream(jarfile.data)(Using.jarInputStream(_) { jin =>
-        val classes = Iterator.continually(jin.getNextJarEntry) takeWhile (
-          _ != null) map (_.getName) filter { n =>
-          // R.class (and variants) are irrelevant
-          n.endsWith(".class") && !n.matches(".*/R\\W+.*class")
-        } toList
+        val classes =
+          Iterator.continually(jin.getNextJarEntry)
+            .takeWhile(_ != null)
+            .map(_.getName)
+            .filter(n => n.endsWith(".class") && !n.matches(".*/R\\W+.*class")) // R.class (and variants) are irrelevant
+            .toList
 
         classes
       })
@@ -87,28 +88,27 @@ object Proguard {
         out.mkdirs()
 
         // TODO cache resutls of jar listing
-        val cacheJars = injars filter (listjar(_) exists (inPackages(_, pc))) toSet
-        val filtered = injars filterNot cacheJars
+        val cacheJars = injars.filter(listjar(_).exists(inPackages(_, pc))).toSet
+        val filtered = injars.filterNot(cacheJars)
 
-        val indeps = filtered map {
-          f => deps / (f.data.getName + "-" +
-            Hash.toHex(Hash(f.data.getAbsolutePath)))
-        }
+        val indeps = filtered.map(f => deps / (f.data.getName + "-" + Hash.toHex(Hash(f.data.getAbsolutePath))))
 
-        val todep = indeps zip filtered filter { case (dep,j) =>
-          !dep.exists || dep.lastModified < j.data.lastModified
-        }
-        todep foreach { case (dep,j) =>
-          st.log.info("Finding dependency references for: " +
-            (j.get(sbt.Keys.moduleID.key) getOrElse j.data.getName))
-          IO.write(dep, ReferenceFinder(j.data, pc.map(_.replace('.','/'))) mkString "\n")
-        }
+        indeps
+          .zip(filtered)
+          .filter { case (dep,j) => !dep.exists || dep.lastModified < j.data.lastModified }
+          .foreach { case (dep,j) =>
+            st.log.info("Finding dependency references for: " + (j.get(sbt.Keys.moduleID.key) getOrElse j.data.getName))
+            IO.write(dep, ReferenceFinder(j.data, pc.map(_.replace('.','/'))) mkString "\n")
+          }
 
-        val alldeps = (indeps flatMap {
-          dep => IO.readLines(dep) }).sortWith(_>_).distinct.mkString("\n")
+        val alldeps =
+          indeps
+            .flatMap(dep => IO.readLines(dep))
+            .sortWith(_>_)
+            .distinct
+            .mkString("\n")
 
-        val allhash = Hash.toHex(Hash((pgConfig ++ pgOptions).mkString("\n") +
-          "\n" + pc.mkString(":") + "\n" + alldeps))
+        val allhash = Hash.toHex(Hash((pgConfig ++ pgOptions).mkString("\n") + "\n" + pc.mkString(":") + "\n" + alldeps))
 
         val cacheJar = out / ("proguard-cache-" + allhash + ".jar")
         FileFunction.cached(st.cacheDirectory / s"cacheJar-$allhash", FilesInfo.hash) { in =>

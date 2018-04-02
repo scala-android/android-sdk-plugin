@@ -7,6 +7,7 @@ import com.android.builder.core.AndroidBuilder
 import com.android.ide.common.process.{CachedProcessOutputHandler, ProcessInfoBuilder}
 import com.android.sdklib.BuildToolInfo
 import sbt._
+import sbt.io.Using
 
 import scala.language.postfixOps
 import scala.xml.{Elem, XML}
@@ -161,7 +162,7 @@ object Dex {
       tmp.mkdirs()
 
       def minimalMainDexParam = if (dexOptions.multi && dexOptions.minimizeMain) "--minimal-main-dex" else ""
-      val additionalDexParams = (dexOptions.additionalParams.toList :+ minimalMainDexParam).distinct.filterNot(_.isEmpty)
+      val _ = (dexOptions.additionalParams.toList :+ minimalMainDexParam).distinct.filterNot(_.isEmpty)
 
       val predex2 = pd flatMap (_._2 * "*.dex" get)
       s.log.debug("DEX IN: " + dexIn)

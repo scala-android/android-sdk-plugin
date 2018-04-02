@@ -8,7 +8,7 @@ object Build extends Build {
   lazy val androidScala = Project(
     id = "android-main",
     base = file("."),
-    settings = Defaults.defaultSettings ++ android.Plugin.androidBuild ++ Seq(
+    settings = Defaults.defaultSettings ++ Seq(
       libraryDependencies ++= Seq(
         "com.scalatags" % "scalatags_2.10" % "0.2.4"
       ),
@@ -16,6 +16,6 @@ object Build extends Build {
       javacOptions in Compile ++= Seq("-source", "1.6", "-target", "1.6"),
       showSdkProgress in Android := false
     )
-  ) dependsOn core
+  ).enablePlugins(AndroidApp).dependsOn(core)
 
 }
