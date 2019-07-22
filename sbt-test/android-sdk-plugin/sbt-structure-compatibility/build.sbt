@@ -1,7 +1,9 @@
-androidBuild
+import org.jetbrains.sbt.StructureKeys._
+
+enablePlugins(AndroidApp)
 
 javacOptions in Compile ++= "-source" :: "1.7" :: "-target" :: "1.7" :: Nil
 
-SettingKey[Option[File]]("sbt-structure-output-file") in Global := Some(baseDirectory.value / "structure.xml")
+sbtStructureOutputFile in Global := Some(baseDirectory.value / "structure.xml")
 
-SettingKey[String]("sbt-structure-options") in Global := "download prettyPrint"
+sbtStructureOptions in Global := "download prettyPrint"

@@ -2,19 +2,21 @@ package android
 
 import java.io.File
 
-import sbt.complete.{Parser, Parsers}
-import Parser._
-import Parsers._
+import scala.collection.JavaConverters._
+import scala.xml.{Elem, Node, NodeSeq, XML}
+
 import sbt.{Def, State, TaskKey}
+import sbt.Def.Initialize
+import sbt.complete.Parser
+import sbt.complete.Parser._
+import sbt.complete.Parsers._
 import sbt.Defaults.loadFromContext
-import Def.Initialize
+import sbt.CacheImplicits.StringJsonFormat
+
 import com.android.sdklib.repository.AndroidSdkHandler
 
-import scala.xml.{Elem, Node, NodeSeq, XML}
-import sbt.Cache.StringFormat
-import sbinary.{Format, Input, Output}
+import sjsonnew.{Builder, JsonFormat, Unbuilder}
 
-import collection.JavaConverters._
 
 /**
   * @author pfnguyen
@@ -80,16 +82,16 @@ private[android] object parsers {
       token("all").map(Option.apply),
       token(StringBasic).examples(updates:_*))
   }
-  private[android] implicit val sbinaryFileFormat: sbinary.Format[File] = new sbinary.Format[File] {
-    override def writes(out: Output, value: File): Unit = StringFormat.writes(out, value.getCanonicalPath)
-    override def reads(in: Input): File = sbt.file(StringFormat.reads(in))
+  private[android] implicit val sjsonFileFormat: JsonFormat[File] = new JsonFormat[File] {
+    override def write[J](obj: File, builder: Builder[J]): Unit = StringJsonFormat.write(obj.getCanonicalPath, builder)
+    override def read[J](jsOpt: Option[J], unbuilder: Unbuilder[J]): File = sbt.file(StringJsonFormat.read(jsOpt, unbuilder))
   }
-  def loadForParser2[P, T: Format, T2: Format]
+  def loadForParser2[P, T: JsonFormat, T2: JsonFormat]
                     (task: TaskKey[T], task2: TaskKey[T2])
                     (f: (State, Option[T], Option[T2]) => Parser[P]): Initialize[State => Parser[P]] =
     loadForParserI2(task, task2)(Def.value(f))
 
-  def loadForParserI2[P, T : Format, T2 : Format]
+  def loadForParserI2[P, T : JsonFormat, T2 : JsonFormat]
                      (task: TaskKey[T], task2: TaskKey[T2])
                      (init: Initialize[(State, Option[T], Option[T2]) => Parser[P]]): Initialize[State => Parser[P]] =
     Def.setting{

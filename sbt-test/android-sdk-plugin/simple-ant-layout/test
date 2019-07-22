@@ -1,2 +1,2 @@
-> android:proguard-cache
-> android:platform-target
+> android:proguardCache
+> android:platformTarget

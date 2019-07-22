@@ -5,7 +5,8 @@ import java.util.concurrent.{LinkedBlockingDeque, ThreadPoolExecutor, TimeUnit}
 import java.util.jar.JarFile
 import java.util.zip.{Deflater, ZipEntry}
 
-import android.Keys.PackagingOptions
+import scala.collection.JavaConverters._
+
 import com.android.SdkConstants
 import com.android.apkzlib.zfile.{ApkCreatorFactory, ApkZFileCreatorFactory}
 import com.android.apkzlib.zip.ZFileOptions
@@ -19,11 +20,15 @@ import com.android.ide.common.res2.FileStatus
 import com.android.ide.common.signing.KeystoreHelper
 import com.android.utils.ILogger
 import com.google.common.collect.ImmutableMap
+
+import sbt._
 import sbt.Def.Classpath
 import sbt.Keys.moduleID
-import sbt._
+import sbt.io.Using
+import sbt.util.CacheStoreFactory
 
-import scala.collection.JavaConverters._
+import android.Keys.PackagingOptions
+
 
 /**
  * @author pfnguyen
@@ -33,9 +38,9 @@ object Packaging {
                  , unmanaged: Classpath
                  , depenendices: Classpath) {
 
-    def isScalaLang(module: ModuleID) = module.organization == "org.scala-lang"
+    def isScalaLang(module: ModuleID): Boolean = module.organization == "org.scala-lang"
     val providedConfigurations = Set("provided", "compile-internal", "plugin->default(compile)")
-    def isProvidedDependency(module: ModuleID) = module.configurations exists providedConfigurations
+    def isProvidedDependency(module: ModuleID): Boolean = module.configurations exists providedConfigurations
 
     // filtering out org.scala-lang should not cause an issue
     // they should not be changing on us anyway
@@ -47,28 +52,6 @@ object Packaging {
       case ("classes.jar", xs) => xs.distinct
       case (_,xs) if xs.head.data.isFile => xs.head :: Nil
     }.flatten.map (_.data).toList
-  }
-
-  @deprecated("Use apkbuild(bldr: AndroidBuilder, jars: Packaging.Jars, ...) instead", "1.6.1")
-  def apkbuild( bldr: AndroidBuilder
-              , managed: Classpath
-              , unmanaged: Classpath
-              , dependenciesCp: Classpath
-              , isLib: Boolean
-              , aggregateOptions: Aggregate.Apkbuild
-              , abiFilter: Set[String]
-              , collectJniOut: File
-              , resFolder: File
-              , collectResourceFolder: File
-              , collectAssetsFolder: File
-              , output: File
-              , logger: ILogger
-              , s: sbt.Keys.TaskStreams): File = {
-    apkbuild(
-      bldr, Jars(managed, unmanaged, dependenciesCp), isLib,
-      aggregateOptions, abiFilter, collectJniOut, resFolder,
-      collectResourceFolder, collectAssetsFolder, output, logger, s
-    )
   }
 
   def apkbuild( bldr: AndroidBuilder
@@ -155,23 +138,23 @@ object Packaging {
     var result = Option.empty[ImmutableMap[RelativeFile,FileStatus]]
     s.log.debug("Checking for changes in " + files.mkString(","))
 
-    FileFunction.cached(s.cacheDirectory / cacheName)(FilesInfo.lastModified, FilesInfo.exists) { (ins, _) =>
-      s.log.debug("Found changes!")
-      val ds = if (ins.added == ins.checked) ins.added.toList.map { f =>
-        new RelativeFile(base(f), f) -> FileStatus.NEW
-      } else {
-        ins.added.toList.map { f =>
-          new RelativeFile(base(f), f) -> FileStatus.NEW
-        } ++ ins.removed.toList.map { f =>
-          new RelativeFile(base(f), f) -> FileStatus.REMOVED
-        } ++ (ins.modified -- ins.added).toList.map { f =>
-          new RelativeFile(base(f), f) -> FileStatus.CHANGED
-        }
-      }
+    FileFunction.cached(
+      CacheStoreFactory(s.cacheDirectory / cacheName),
+      FilesInfo.lastModified,
+      FilesInfo.exists) { (ins, _) =>
+        s.log.debug("Found changes!")
+        val ds =
+          if (ins.added == ins.checked)
+            ins.added.toList.map(f => new RelativeFile(base(f), f) -> FileStatus.NEW)
+          else {
+            ins.added.toList.map(f => new RelativeFile(base(f), f) -> FileStatus.NEW) ++
+              ins.removed.toList.map(f => new RelativeFile(base(f), f) -> FileStatus.REMOVED) ++
+              (ins.modified -- ins.added).toList.map(f => new RelativeFile(base(f), f) -> FileStatus.CHANGED)
+          }
 
-      result = Some(ImmutableMap.copyOf(ds.toMap.asJava))
+        result = Some(ImmutableMap.copyOf(ds.toMap.asJava))
 
-      ins.checked
+        ins.checked
     }(files.toSet)
 
     result.getOrElse(ImmutableMap.of())

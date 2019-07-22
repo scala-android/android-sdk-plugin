@@ -117,7 +117,7 @@ trait AndroidAppSettings extends AutoPlugin {
     packageRelease           := (packageRelease dependsOn setRelease).value,
     zipalignPath             := {
       val p  = sdkPath.value
-      val m  = sdkManager.value
+      val _  = sdkManager.value
       val bt = buildToolInfo.value
       val s  = sLog.value
 

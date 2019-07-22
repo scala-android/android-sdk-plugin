@@ -1,23 +1,25 @@
 package android
 
+import java.io.File
 import java.util.Locale
 
 import com.android.ddmlib.FileListingService.FileEntry
-import sbt._
-import sbt.complete.{Parser, Parsers}
-import complete.DefaultParsers._
-import java.io.File
-
-import com.android.ddmlib._
 
 import scala.annotation.tailrec
 import scala.util.Try
-import language.postfixOps
 import scala.util.matching.Regex
+import scala.sys.process._
+
+import com.android.ddmlib._
+
+import sbt._
+import sbt.complete.{Parser, Parsers}
+import sbt.complete.DefaultParsers._
+import sbt.internal.util.ConsoleAppender
 
 object Commands {
 
-  val COLORS_ENABLED: Boolean = ConsoleLogger.formatEnabled
+  val COLORS_ENABLED: Boolean = ConsoleAppender.formatEnabledInEnv
   val LOGCAT_COMMAND = "logcat -v brief -d"
   var defaultDevice: Option[String] = None
 
@@ -307,7 +309,7 @@ object Commands {
     val sdk = sdkpath(state)
     val adbPath = SdkLayout.adb(sdk).getCanonicalPath
     state.get(wifiState).map { ip =>
-      val r = Seq(adbPath, "connect", ip) !
+      val r = Seq(adbPath, "connect", ip).!
 
       if (r != 0) {
         PluginFail("failed to reconnect to ADB-over-wifi")
@@ -330,7 +332,7 @@ object Commands {
     val d = targetDevice(sdk, state.log).get
     if (adbWifiOn) {
       state.log.info("turning ADB-over-wifi off")
-      Seq(adbPath, "-s", d.getSerialNumber, "usb") !
+      Seq(adbPath, "-s", d.getSerialNumber, "usb").!
 
       state.remove(wifiState)
     } else {
@@ -344,9 +346,9 @@ object Commands {
       if (ip.nonEmpty) {
         state.log.debug("device ip: %s" format ip)
 
-        Seq(adbPath, "-s", d.getSerialNumber, "tcpip", "5555") !
+        Seq(adbPath, "-s", d.getSerialNumber, "tcpip", "5555").!
 
-        val r = Seq(adbPath, "connect", ip) !
+        val r = Seq(adbPath, "connect", ip).!
 
         if (r != 0)
           PluginFail("failed to connect ADB-over-wifi")
@@ -396,7 +398,7 @@ object Commands {
     val pluginSbt = build / "android.sbt"
     val plugin = s"""addSbtPlugin("org.scala-android" % "sbt-android" % "${BuildInfo.version}")""".stripMargin
     val version = Project.extract(state).get(sbt.Keys.sbtVersion)
-    val useVersion = if (compareSbtVersion(version)) version else "0.13.16"
+    val useVersion = if (compareSbtVersion(version)) version else "1.2.8"
     if ((build * "*.sbt").get.isEmpty) {
       IO.writeLines(pluginSbt, plugin :: Nil)
     } else {
@@ -428,7 +430,7 @@ object Commands {
         "  Nil" ::
         Nil
     val plat = platform.toList.flatMap(p => "" :: s"""platformTarget := "$p"""" :: Nil)
-    val javacOption = if (util.Properties.isJavaAtLeast("1.8")) {
+    val javacOption = if (scala.util.Properties.isJavaAtLeast("1.8")) {
       "" ::
         """
           |javacOptions in Compile ++= "-source" :: "1.7" :: "-target" :: "1.7" :: Nil
@@ -437,16 +439,16 @@ object Commands {
 
     IO.writeLines(projectBuild, buildSettings ++ plat ++ javacOption ++ libs)
     if (state.remainingCommands.nonEmpty)
-      Command.process("reload", state)
+      "reload" :: state
     else
       state
   }
   val createProjectSbtAction: (State,Option[String]) => State = (state,platform) => {
-    createProjectSbt(false, state, platform)
+    createProjectSbt(multi = false, state, platform)
   }
 
   val createMultiProjectSbtAction: (State,Option[String]) => State = (state,platform) => {
-    createProjectSbt(true, state, platform)
+    createProjectSbt(multi = true, state, platform)
   }
 
   val createProjectParser: State => Parser[Either[Unit, (String, String)]] = state => {
@@ -656,7 +658,7 @@ object Commands {
           if (tagMatch.nonEmpty|| msgMatch.nonEmpty)
             Some(highlightMatch(tagMatch, msgMatch, l)) else None
         })
-        val v = deviceApiLevel(d)
+        val _ = deviceApiLevel(d)
         val logcat = pidcatCommand(d)
         d.executeShellCommand(logcat, receiver)
         receiver.flush()

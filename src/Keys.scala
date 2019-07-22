@@ -3,6 +3,7 @@ package android
 import com.android.tools.lint.LintCliFlags
 import com.android.tools.lint.detector.api.Issue
 import sbt._
+import sbt.librarymanagement.Configuration
 
 import scala.xml.Elem
 import java.io.File
@@ -17,7 +18,7 @@ import com.android.sdklib.repository.AndroidSdkHandler
 
 import language.implicitConversions
 
-object Keys extends DeprecatedPluginCompat {
+object Keys {
   // alias types that got refactored out
   type ProjectLayout = android.ProjectLayout
   val ProjectLayout = android.ProjectLayout
@@ -39,7 +40,8 @@ object Keys extends DeprecatedPluginCompat {
 
   val Android = config("android")
   val AndroidTest = config("androidTest").extend(Runtime).hide
-  val AndroidTestInternal = Configurations.fullInternal(AndroidTest)
+  val AndroidTestInternal =
+    Configuration.of(AndroidTest.id + "Internal", AndroidTest.name + "-internal").extend(Optional, Provided).hide
 
   // build-environment keys
   // automatically set from ANDROID_HOME or *.properties ("sdk.dir")
@@ -179,9 +181,6 @@ object Keys extends DeprecatedPluginCompat {
   // manifest-related keys
   val applicationId = TaskKey[String]("application-id",
     "apk pkg id, is android:packageName if set, otherwise manifest package name") in Android
-  @deprecated("Use `applicationId in Android` instead", "1.4.6")
-  val packageName = SettingKey[String]("package-name",
-    "Deprecated android application ID, use android:application-id instead") in Android
   val manifest = TaskKey[Elem]("manifest",
     "android manifest xml object, read-only, do not modify") in Android
   val processManifest = TaskKey[File]("process-manifest",
@@ -297,8 +296,6 @@ object Keys extends DeprecatedPluginCompat {
     "Whether to enable lint checking during compile, default: true") in Android
   val lintDetectors = SettingKey[Seq[Issue]]("lint-issues",
     "Issues to detect, default: ApiDetectors") in Android
-
-  implicit def toRichProject(project: Project): RichProject = RichProject(project)
 
   case class PackagingOptions(excludes: Seq[String] = Nil, pickFirsts: Seq[String] = Nil, merges: Seq[String] = Nil, doNotStrip: Seq[String] = Nil) {
     import collection.JavaConverters._

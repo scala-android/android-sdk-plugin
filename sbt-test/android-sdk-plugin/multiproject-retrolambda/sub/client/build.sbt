@@ -2,7 +2,7 @@ import android.Keys._
 
 name	:= "test-client"
 
-android.Plugin.androidBuild
+enablePlugins(AndroidApp)
 
 platformTarget in Android		:= "android-19"
 

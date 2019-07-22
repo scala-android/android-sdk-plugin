@@ -1,10 +1,12 @@
 package android
 
+import sbt._
+import sbt.Keys._
+
 import Keys._
 import Keys.Internal._
 import Tasks._
-import sbt.{Def, _}
-import sbt.Keys._
+
 /**
   * @author pfnguyen
   */
@@ -32,7 +34,6 @@ trait AndroidTestSettings extends AutoPlugin {
     scalacOptions               := (scalacOptions in Compile).value,
     javacOptions                := (javacOptions in Compile).value,
     manipulateBytecode          := compileIncremental.value,
-    TaskKey[Option[xsbti.Reporter]]("compilerReporter") := None,
     compileIncremental          := Defaults.compileIncrementalTask.value,
     compile := Def.taskDyn {
       if (executionRoots.value.size == 1) {
@@ -48,18 +49,45 @@ trait AndroidTestSettings extends AutoPlugin {
       } else Defaults.compileTask
     }.value,
     compileIncSetup := {
-      Compiler.IncSetup(
-        Defaults.analysisMap((dependencyClasspath in AndroidTestInternal).value),
-        definesClass.value,
+      val lookup = new xsbti.compile.PerClasspathEntryLookup {
+        private val cachedAnalysisMap =
+          Defaults.analysisMap((dependencyClasspath in AndroidTestInternal).value)
+        private val cachedPerEntryDefinesClassLookup = sbt.Keys.classpathEntryDefinesClass.value // ??? FIXME
+
+        override def analysis(classpathEntry: File): java.util.Optional[xsbti.compile.CompileAnalysis] =
+          sbt.util.InterfaceUtil.toOptional(cachedAnalysisMap(classpathEntry))
+        override def definesClass(classpathEntry: File): xsbti.compile.DefinesClass =
+          cachedPerEntryDefinesClassLookup(classpathEntry)
+      }
+
+      xsbti.compile.Setup.of(
+        lookup,
         (skip in compile).value,
-        // TODO - this is kind of a bad way to grab the cache directory for streams...
         streams.value.cacheDirectory / compileAnalysisFilename.value,
         compilerCache.value,
-        incOptions.value)
+        incOptions.value,
+        sbt.SbtInternals.reporter.value,
+        java.util.Optional.empty[xsbti.compile.CompileProgress],
+        Array.empty)
     },
     compileInputs in compile := {
-      val cp = classDirectory.value +: Attributed.data((dependencyClasspath in AndroidTestInternal).value)
-      Compiler.inputs(cp, sources.value, classDirectory.value, scalacOptions.value, javacOptions.value, maxErrors.value, sourcePositionMappers.value, compileOrder.value)(compilers.value, compileIncSetup.value, streams.value.log)
+      val cp = (classDirectory.value +: Attributed.data((dependencyClasspath in AndroidTestInternal).value)).toArray
+
+      def foldMappers[A](mappers: Seq[A => Option[A]]) =
+        mappers.foldRight({p: A => p}) { (mapper, mappers) => {p: A => mapper(p).getOrElse(mappers(p))}}
+
+      val compileOptions = xsbti.compile.CompileOptions.of(
+        cp,
+        sources.value.toArray,
+        classDirectory.value,
+        scalacOptions.value.toArray,
+        javacOptions.value.toArray,
+        maxErrors.value,
+        sbt.util.InterfaceUtil.toJavaFunction(foldMappers(sourcePositionMappers.value)),
+        compileOrder.value
+      )
+
+      xsbti.compile.Inputs.of(compilers.value, compileOptions, compileIncSetup.value, previousCompile.value)
     },
     compileAnalysisFilename := {
       // Here, if the user wants cross-scala-versioning, we also append it
@@ -79,4 +107,5 @@ trait AndroidTestSettings extends AutoPlugin {
   )) ++ List(
    dependencyClasspath in AndroidTestInternal := (dependencyClasspath in AndroidTest).value ++ (dependencyClasspath in Runtime).value
   )
+
 }

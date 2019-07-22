@@ -5,4 +5,4 @@ $ exists target/android/intermediates/dex/classes2.dex
 > clean
 > android:package
 $ exists target/android/intermediates/dex/maindexlist.txt
-> check-list
+> checkList

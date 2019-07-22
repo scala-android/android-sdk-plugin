@@ -1,4 +1,4 @@
-TaskKey[Unit]("javah-finder") <<= (baseDirectory, streams) map { (b,s) =>
-  val headers = (b ** "*.h").get
-  s.log.info("Headers: " + (headers mkString ","))
+TaskKey[Unit]("javah-finder") := {
+  val headers = (baseDirectory.value ** "*.h").get
+  streams.value.log.info("Headers: " + (headers mkString ","))
 }

@@ -3,17 +3,18 @@ package android
 import java.io.{File, InputStream}
 import java.net.{HttpURLConnection, URL}
 
+import scala.collection.JavaConverters._
+import scala.concurrent.duration._
+
 import com.android.repository.api._
-import com.android.repository.impl.generated.v1.{LocalPackage => _, _}
 import com.android.repository.io.FileOp
 import com.android.sdklib.repository.AndroidSdkHandler
 import com.android.repository.api.{RemotePackage => RepoRemotePackage}
 import com.android.sdklib.repository.generated.repository.v1.PlatformDetailsType
 import com.android.sdklib.repository.installer.SdkInstallerUtil
-import sbt.{IO, Logger, Using}
 
-import collection.JavaConverters._
-import concurrent.duration._
+import sbt.{IO, Logger}
+import sbt.io.Using
 
 object SdkInstaller extends TaskBase {
   implicit val packageOrder: Ordering[com.android.repository.api.RemotePackage] =

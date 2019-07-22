@@ -1,6 +1,6 @@
 import android.Keys._
 
-android.Plugin.androidBuild
+enablePlugins(AndroidApp)
 
 name := "renderscript"
 

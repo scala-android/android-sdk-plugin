@@ -1,5 +1,5 @@
 > android:package
 $ exists target/android/intermediates/dex/retrolambda-processed.jar
-> check-jar
+> checkJar
 > android:test
 > android:uninstall
