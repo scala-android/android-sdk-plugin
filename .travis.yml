@@ -7,14 +7,11 @@ jdk:
 
 env:
   global:
-#    - ANDROID_API_LEVEL=26
-#    - ANDROID_EMU_API_LEVEL=24
-#    - ANDROID_BUILD_TOOLS_VERSION=26.0.1
-#    - ANDROID_ABI=armeabi-v7a
+    - ANDROID_EMU_API_LEVEL=24
     - ANDROID_API_LEVEL=26
     - ANDROID_BUILD_TOOLS_VERSION=26.0.1
     - ANDROID_ABI=armeabi-v7a
-    - NDK_VERSION=r18b
+    - NDK_VERSION=r11c
     - ANDROID_NDK_HOME=$HOME/android-ndk-$NDK_VERSION
     - QEMU_AUDIO_DRV=none # Remove audio
 cache:
@@ -24,32 +21,27 @@ cache:
     - $HOME/.ivy2
 android:
   components:
-    - tools # to get the new `repository-11.xml`
-    - platform-tools
     - tools
+    - platform-tools
     - build-tools-$ANDROID_BUILD_TOOLS_VERSION
-#    - android-$ANDROID_API_LEVEL
-#    - android-$ANDROID_EMU_API_LEVEL
-#    - sys-img-$ANDROID_ABI-android-$ANDROID_API_LEVEL
-#    - sys-img-$ANDROID_ABI-android-$ANDROID_EMU_API_LEVEL
-    - android-25
-    - sys-img-armeabi-v7a-google_apis-25
+    - android-$ANDROID_API_LEVEL
+    - android-$ANDROID_EMU_API_LEVEL
+    - sys-img-$ANDROID_ABI-android-$ANDROID_EMU_API_LEVEL
     - extra
 before_script:
   # Emulator Management: Create, Start and Wait
-#  - echo no | android create avd --force -n test -t android-$ANDROID_EMU_API_LEVEL --abi $ANDROID_ABI
-  - echo no | android create avd --force -n test -t android-25 --abi google_apis/armeabi-v7a
+  - echo no | android create avd --force -n test -t android-$ANDROID_EMU_API_LEVEL --abi $ANDROID_ABI
   - emulator -avd test -no-window &
   # install & cache NDK
   - curl https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux-x86_64.zip -z ${ANDROID_NDK_HOME}/ndk-build -o $HOME/ndk-${NDK_VERSION}.zip
   - (unzip -q $HOME/ndk-$NDK_VERSION.zip -d $HOME; true)
   - ls $ANDROID_NDK_HOME
   # wait for emulator after ndk
+  - android-wait-for-emulator
   - adb shell input keyevent 82 &
 script:
   - curl -o sbt-launcher.sh https://raw.githubusercontent.com/paulp/sbt-extras/master/sbt
   - chmod a+x ./sbt-launcher.sh
   - ./sbt-launcher.sh publish-local
   - ./sbt-launcher.sh gradlebuild/publish-local
-  - android-wait-for-emulator
   - ./sbt-launcher.sh "scripted android-sdk-plugin/* gradle-build/*"
