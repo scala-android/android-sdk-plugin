@@ -396,7 +396,7 @@ object Commands {
     val pluginSbt = build / "android.sbt"
     val plugin = s"""addSbtPlugin("org.scala-android" % "sbt-android" % "${BuildInfo.version}")""".stripMargin
     val version = Project.extract(state).get(sbt.Keys.sbtVersion)
-    val useVersion = if (compareSbtVersion(version)) version else "0.13.16"
+    val useVersion = if (compareSbtVersion(version)) version else "0.13.17"
     if ((build * "*.sbt").get.isEmpty) {
       IO.writeLines(pluginSbt, plugin :: Nil)
     } else {
