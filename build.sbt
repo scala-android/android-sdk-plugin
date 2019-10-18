@@ -2,18 +2,26 @@ val pluginVersion = "2.0.0-SNAPSHOT"
 val gradleBuildVersion = "2.0.0-SNAPSHOT"
 
 val androidToolsVersion = "2.3.0"
+val gradleToolingApi = "2.6"
+
+resolvers ++= Seq(
+  "Google's Maven repository" at "https://dl.google.com/dl/android/maven2/"
+)
 
 // gradle-plugin and gradle-model projects
 val model = project.in(file("gradle-model")).settings(
   name := "gradle-discovery-model",
   organization := "com.hanhuy.gradle",
-  resolvers += Resolver.jcenterRepo,
+  resolvers ++= Seq(
+    "Google's Maven repository" at "https://dl.google.com/dl/android/maven2/",
+    "Gradle Releases Repository" at "https://repo.gradle.org/gradle/libs-releases-local/"
+  ),
   javacOptions ++= "-source" :: "1.6" :: "-target" :: "1.6" :: Nil,
   autoScalaLibrary := false,
   crossPaths := false,
   libraryDependencies ++=
     "com.android.tools.build" % "builder-model" % androidToolsVersion ::
-    "org.gradle" % "gradle-tooling-api" % "2.6" % "provided" :: Nil
+    "org.gradle" % "gradle-tooling-api" % gradleToolingApi % "provided" :: Nil
 )
 
 val gradle = project.in(file("gradle-plugin")).settings(
@@ -22,7 +30,10 @@ val gradle = project.in(file("gradle-plugin")).settings(
   bintrayRepository in bintray := "maven",
   organization := "com.hanhuy.gradle",
   bintrayOrganization in bintray := None,
-  resolvers += Resolver.jcenterRepo,
+  resolvers ++= Seq(
+    "Google's Maven repository" at "https://dl.google.com/dl/android/maven2/",
+    "Gradle Releases Repository" at "https://repo.gradle.org/gradle/libs-releases-local/"
+  ),
   publishMavenStyle := true,
   autoScalaLibrary := false,
   crossPaths := false,
@@ -39,22 +50,24 @@ val gradle = project.in(file("gradle-plugin")).settings(
     "org.codehaus.groovy" % "groovy" % "2.4.4" % "provided" ::
     "com.android.tools.build" % "gradle" % androidToolsVersion ::
     "com.android.tools.build" % "builder-model" % androidToolsVersion ::
-    "org.gradle" % "gradle-tooling-api" % "2.6" % "provided" ::
+    "org.gradle" % "gradle-tooling-api" % gradleToolingApi % "provided" ::
     "javax.inject" % "javax.inject" % "1" % "provided" ::
     Nil
 ).dependsOn(model % "compile-internal")
 
-val gradlebuild = project.in(file("gradle-build")).enablePlugins(BuildInfoPlugin, SbtPlugin).settings(
+val gradlebuild = project.in(file("gradle-build")).enablePlugins(BuildInfoPlugin).settings(
   version := gradleBuildVersion,
-  resolvers += Resolver.jcenterRepo,
+  resolvers ++= Seq(
+    "Gradle Releases Repository" at "https://repo.gradle.org/gradle/libs-releases-local/"
+  ),
   mappings in (Compile, packageBin) ++=
     (mappings in (Compile, packageBin) in model).value,
   name := "sbt-android-gradle",
   organization := "org.scala-android",
   scalacOptions ++= Seq("-deprecation","-Xlint","-feature"),
   libraryDependencies ++= Seq(
-    "com.google.code.findbugs" % "jsr305"                 % "3.0.2"  % "compile-internal",
-    "org.gradle"               % "gradle-tooling-api"     % "2.6"    % "provided",
+    "com.google.code.findbugs" % "jsr305"                 % "3.0.1"  % "compile-internal",
+    "org.gradle"               % "gradle-tooling-api"     % gradleToolingApi    % "provided",
     "org.slf4j"                % "slf4j-api"              % "1.7.10" // required by gradle-tooling-api
   ),
   // embed gradle-tooling-api jar in plugin since they don't publish on central
