@@ -55,7 +55,7 @@ val gradle = project.in(file("gradle-plugin")).settings(
     Nil
 ).dependsOn(model % "compile-internal")
 
-val gradlebuild = project.in(file("gradle-build")).enablePlugins(BuildInfoPlugin).settings(
+val gradlebuild = project.in(file("gradle-build")).enablePlugins(BuildInfoPlugin, SbtPlugin).settings(
   version := gradleBuildVersion,
   resolvers ++= Seq(
     "Gradle Releases Repository" at "https://repo.gradle.org/gradle/libs-releases-local/"
@@ -66,7 +66,7 @@ val gradlebuild = project.in(file("gradle-build")).enablePlugins(BuildInfoPlugin
   organization := "org.scala-android",
   scalacOptions ++= Seq("-deprecation","-Xlint","-feature"),
   libraryDependencies ++= Seq(
-    "com.google.code.findbugs" % "jsr305"                 % "3.0.1"  % "compile-internal",
+    "com.google.code.findbugs" % "jsr305"                 % "3.0.2"  % "compile-internal",
     "org.gradle"               % "gradle-tooling-api"     % gradleToolingApi    % "provided",
     "org.slf4j"                % "slf4j-api"              % "1.7.10" // required by gradle-tooling-api
   ),
