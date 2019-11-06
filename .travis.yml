@@ -54,4 +54,4 @@ script:
   - chmod a+x ./sbt-launcher.sh
   - ./sbt-launcher.sh publishLocal
   - ./sbt-launcher.sh gradlebuild/publishLocal
-  - ./sbt-launcher.sh $TEST_COMMAND
+  - ./sbt-launcher.sh "$TEST_COMMAND"
