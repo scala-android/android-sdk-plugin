@@ -4,7 +4,6 @@ os:
   - linux
 jdk:
   - oraclejdk8
-
 env:
   matrix:
     - TEST_COMMAND="scripted android-sdk-plugin/*1of2"
