@@ -1,10 +1,9 @@
 package android
 
-import language.postfixOps
-
 import javassist.util.proxy.{MethodHandler, MethodFilter, ProxyFactory}
 
 import sbt._
+import sbt.io.Using
 
 import org.objectweb.asm._
 import org.objectweb.asm.signature.SignatureVisitor

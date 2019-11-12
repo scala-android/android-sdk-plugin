@@ -1,10 +1,10 @@
-> check-target-api-equals-min
+> checkTargetApiEqualsMin
 > android:package
 # > android:package-aar
 $ exists target/android/output/renderscript-debug.apk
 # $ exists target/android/output/renderscript.aar
-> check-apk-for-resource
-# > check-aar-for-resource
-# > check-aar-no-libs
+> checkApkForResource
+# > checkAarForResource
+# > checkAarNoLibs
 > last android:apkbuild
-> show list-apk
+> show listApk

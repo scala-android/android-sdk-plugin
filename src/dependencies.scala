@@ -9,6 +9,7 @@ import BuildOutput._
 import com.android.builder.dependency.level2.AndroidDependency
 import com.android.builder.model.{AndroidLibrary, JavaLibrary, MavenCoordinates}
 import com.android.manifmerger.ManifestProvider
+import sbt.internal.BuildStructure
 
 object Dependencies {
   // excludes are temporary until everything/one uses libraryDependencies
@@ -172,14 +173,6 @@ object Dependencies {
     }
 
     override def hashCode(): Int = path.getCanonicalFile.hashCode
-  }
-
-  @deprecated("`dependsOn(project)` now adds transitive settings automatically", "1.7.0")
-  implicit class RichProject(val project: Project) extends AnyVal {
-    @deprecated("use `enablePlugins(AndroidApp).dependsOn(deps)`", "1.7.0")
-    def androidBuildWith(deps: ProjectReference*): Project = {
-      project.enablePlugins(AndroidApp).dependsOn(deps map { x => x: ClasspathDep[ProjectReference] }: _*)
-    }
   }
 
   implicit class ModuleIDOps(id: ModuleID) {

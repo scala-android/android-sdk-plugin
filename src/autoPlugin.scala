@@ -17,11 +17,6 @@ object AndroidProject extends AutoPlugin with AndroidProjectSettings {
   override def requires = plugins.JvmPlugin
 }
 
-@deprecated("use `enablePlugins(AndroidApp)`", "1.7.0")
-object AndroidPlugin extends AutoPlugin {
-  override def requires = AndroidProject
-}
-
 // AndroidLib should support `android:test` as well. no install, run, etc.
 object AndroidLib extends AutoPlugin with AndroidLibSettings {
   override def requires = AndroidProject

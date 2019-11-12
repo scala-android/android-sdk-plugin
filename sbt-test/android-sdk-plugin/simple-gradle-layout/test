@@ -1,8 +1,8 @@
-> android:proguard-cache
-> android:platform-target
-> verify-package
+> android:proguardCache
+> android:platformTarget
+> verifyPackage
 > show android:aars
-> check-global-aar
+> checkGlobalAar
 > android:resValuesGenerator
 $ exists target/android/generated/res/values/generated.xml
-> verify-res-values
+> verifyResValues

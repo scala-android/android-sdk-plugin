@@ -4,8 +4,11 @@ os:
   - linux
 jdk:
   - oraclejdk8
-
 env:
+  matrix:
+    - TEST_COMMAND="scripted android-sdk-plugin/*1of2"
+    - TEST_COMMAND="scripted android-sdk-plugin/*2of2"
+    - TEST_COMMAND="scripted gradle-build/*"
   global:
     - ANDROID_EMU_API_LEVEL=24
     - ANDROID_API_LEVEL=26
@@ -48,6 +51,6 @@ before_script:
 script:
   - curl -o sbt-launcher.sh https://raw.githubusercontent.com/paulp/sbt-extras/master/sbt
   - chmod a+x ./sbt-launcher.sh
-  - ./sbt-launcher.sh publish-local
-  - ./sbt-launcher.sh gradlebuild/publish-local
-  - ./sbt-launcher.sh "scripted android-sdk-plugin/* gradle-build/*"
+  - ./sbt-launcher.sh publishLocal
+  - ./sbt-launcher.sh gradlebuild/publishLocal
+  - ./sbt-launcher.sh "$TEST_COMMAND"

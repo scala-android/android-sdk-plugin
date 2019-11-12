@@ -3,7 +3,7 @@ package android
 import javassist.util.proxy.{MethodHandler, MethodFilter, ProxyFactory}
 
 import sbt._
-import language.postfixOps
+import sbt.io.Using
 
 import org.objectweb.asm._
 
@@ -39,7 +39,7 @@ object NativeFinder {
     }
     factory.create(Array(classOf[Int]), Array(Opcodes.ASM4.asInstanceOf[AnyRef]), h) match {
       case x: ClassVisitor =>
-        (classDir ** "*.class" get) foreach { entry =>
+        (classDir ** "*.class").get foreach { entry =>
           Using.fileInputStream(entry) { in =>
               try {
                 val r = new ClassReader(in)

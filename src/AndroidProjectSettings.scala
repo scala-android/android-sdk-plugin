@@ -2,10 +2,10 @@ package android
 
 import java.io.File
 
+import android.BuildOutput.Converter
 import android.Keys._
 import android.Keys.Internal._
 import com.android.tools.lint.LintCliFlags
-import com.hanhuy.sbt.bintray.UpdateChecker
 import Tasks._
 import com.android.builder.core.{AndroidBuilder, LibraryRequest}
 import com.android.builder.sdk.{DefaultSdkLoader, SdkLibData}
@@ -17,17 +17,16 @@ import scala.collection.JavaConverters._
 import scala.util.Try
 import scala.xml.XML
 import sbt._
-import sbt.Cache.StringFormat
 import sbt.Keys._
-import parsers.sbinaryFileFormat
+import parsers.sjsonFileFormat
 import Resources.ANDROID_NS
 
 /**
   * @author pfnguyen
   */
-trait AndroidProjectSettings extends AutoPlugin {
+trait AndroidProjectSettings extends AutoPlugin with ProjectExtra {
 
-  override def projectSettings = {
+  override def projectSettings: Seq[Setting[_]] = {
     // only set the property below if this plugin is actually used
     // this property is a workaround for bootclasspath messing things
     // up and causing full-recompiles
@@ -62,7 +61,7 @@ trait AndroidProjectSettings extends AutoPlugin {
 
       checkVersion("minSdkVersion", minSdk)
       checkVersion("targetSdkVersion", tgtSdk)
-      implicit val output = o
+      implicit val output: Converter = o
       if (en)
         AndroidLint(layout, classes, f, ld, strict, minSdk, tgtSdk, s)
       c
@@ -76,13 +75,13 @@ trait AndroidProjectSettings extends AutoPlugin {
     //packageOptions in packageBin := Package.JarManifest(new java.util.jar.Manifest) :: Nil,
     packageConfiguration in packageBin := {
       val c = (packageConfiguration in packageBin).value
-      val b = baseDirectory.value
+      val _ = baseDirectory.value
       val l = libraryProject.value
       val p = projectLayout.value
       val o = outputLayout.value
 
         // remove R.java generated code from library projects
-        implicit val output = o
+        implicit val output: Converter = o
         val sources = if (l) {
           c.sources filter {
             case (f,n) => !f.getName.matches("R\\W+.*class")
@@ -98,7 +97,7 @@ trait AndroidProjectSettings extends AutoPlugin {
     javaSource         := projectLayout.value.javaSource,
     unmanagedJars      := unmanagedJarsTaskDef.value,
     // doesn't work properly yet, not for intellij integration
-    //managedClasspath  <<= managedClasspathTaskDef,
+    //managedClasspath  := managedClasspathTaskDef,
     sourceGenerators   := sourceGenerators.value ++ List(
       rGenerator.taskValue,
       viewHoldersGenerator.taskValue,
@@ -162,7 +161,7 @@ trait AndroidProjectSettings extends AutoPlugin {
       true
     },
     lint                        := {
-      implicit val output = outputLayout.value
+      implicit val output: Converter = outputLayout.value
       AndroidLint(projectLayout.value, (classDirectory in Compile).value,
         lintFlags.value, lintDetectors.value, lintStrict.value,
         minSdkVersion.value, targetSdkVersion.value, streams.value)
@@ -188,20 +187,19 @@ trait AndroidProjectSettings extends AutoPlugin {
     // productX := Nil is a necessity to use Classpaths.configSettings
     exportedProducts         := Nil,
     products                 := Nil,
-    classpathConfiguration   := config("compile"),
+    classpathConfiguration   := Compile,
     // end for Classpaths.configSettings
     // hack since it doesn't take in dependent project's libs
     dependencyClasspath      :=
       Def.taskDyn {
         val cp = (dependencyClasspath in Runtime).value
         val layout = projectLayout.value
-        implicit val out = outputLayout.value
+        implicit val out: Converter = outputLayout.value
         if (apkbuildDebug.value() && debugIncludesTests.?.value.getOrElse(false)) Def.task {
           val s = streams.value
           val tcp = (externalDependencyClasspath in AndroidTest).value
           cp foreach { a =>
-            s.log.debug("%s => %s: %s" format(a.data.getName,
-              a.get(configuration.key), a.get(moduleID.key)))
+            s.log.debug(s"${a.data.getName} => ${a.get(configuration.key)}: ${a.get(moduleID.key)}")
           }
           val newcp = cp ++ tcp
           newcp.distinct.filterNot(_.data == layout.classesJar)
@@ -264,7 +262,7 @@ trait AndroidProjectSettings extends AutoPlugin {
         val d = (classDirectory in Compile).value
         val s = streams.value
 
-        implicit val output = o
+        implicit val output: Converter = o
         FileFunction.cached(s.cacheDirectory / "clean-for-r",
           FilesInfo.hash, FilesInfo.exists) { in =>
           if (in.nonEmpty) {
@@ -337,7 +335,7 @@ trait AndroidProjectSettings extends AutoPlugin {
     mergeManifests           := true,
     manifestPlaceholders     := Map.empty,
     manifestOverlays         := Seq.empty,
-    processManifest          := (processManifestTaskDef storeAs processManifest).value,
+    processManifest          := processManifestTaskDef.storeAs(processManifest).value,
     manifest                 := (manifestPath map { m =>
       if (!m.exists)
         fail("cannot find AndroidManifest.xml: " + m)
@@ -345,15 +343,8 @@ trait AndroidProjectSettings extends AutoPlugin {
     }).value,
     versionCode              := manifest.value.attribute(ANDROID_NS, "versionCode").map(_.head.text.toInt),
     versionName              := manifest.value.attribute(ANDROID_NS, "versionName").map(_.head.text) orElse Some(version.value),
-    packageForR              := (manifest map { m => m.attribute("package").get.head.text}).value,
-    applicationId            :=
-      Def.task {
-        Forwarder.deprecations.packageName.?.value.fold(manifest.value.attribute("package").head.text) { p =>
-          streams.value.log.warn(
-            "'packageName in Android' is deprecated, use 'applicationId'")
-          p
-        }
-      }.storeAs(applicationId).value,
+    packageForR              := manifest.map(m => m.attribute("package").get.head.text).value,
+    applicationId            := packageForR.value,
     targetSdkVersion         := {
       val m = manifest.value
       val usesSdk = m \ "uses-sdk"
@@ -396,13 +387,13 @@ trait AndroidProjectSettings extends AutoPlugin {
     sdkPath                  := SdkInstaller.sdkPath(sLog.value, properties.value),
     ndkPath                  := {
 
-      val p     = thisProject.value
+      val _     = thisProject.value
       val props = properties.value
       val spath = sdkPath.value
       val log   = sLog.value
 
       val cache = SdkLayout.androidNdkHomeCache
-      def storePathInCache(path: String) = {
+      def storePathInCache(path: String): Unit = {
         cache.getParentFile.mkdirs()
         IO.writeLines(cache, path :: Nil)
       }
@@ -433,11 +424,11 @@ trait AndroidProjectSettings extends AutoPlugin {
     sdkLoader                := DefaultSdkLoader.getLoader(sdkManager.value.getLocation),
     libraryRequests          := Nil,
     builder                  := {
-      val ldr = sdkLoader.value
-      val m    = sdkManager.value
+      val ldr  = sdkLoader.value
+      val _sm  = sdkManager.value
       val n    = name.value
       val l_   = ilogger.value
-      val b    = buildToolInfo.value
+      val _b   = buildToolInfo.value
       val t    = platform.value
       val reqs = libraryRequests.value
       val log  = sLog.value
@@ -567,14 +558,4 @@ trait AndroidProjectSettings extends AutoPlugin {
         (path ** filter).get }
     }.value
   )
-
-  private[this] object Forwarder {
-    @deprecated("forwarding", "1.6.0")
-    trait deprecations {
-      val packageName = Keys.packageName
-    }
-
-    object deprecations extends deprecations
-  }
-
 }

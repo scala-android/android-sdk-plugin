@@ -2,13 +2,15 @@ import android.Keys._
 import android.BuildOutput._
 import scala.xml._
 
-TaskKey[Unit]("verify-package") <<= (applicationId in Android) map { p =>
-  if (p != "com.example.app") error("wrong package: " + p)
+TaskKey[Unit]("verify-package") := {
+  val p = (applicationId in Android).value
+  if (p != "com.example.app") sys.error("wrong package: " + p)
   ()
 }
 
-TaskKey[Unit]("verify-res-values") <<= (
-  projectLayout in Android, outputLayout in Android) map { (p, o) =>
+TaskKey[Unit]("verify-res-values") := {
+  val p = (projectLayout in Android).value
+  val o = (outputLayout in Android).value
   implicit val output = o
   val res = p.generatedRes / "values" / "generated.xml"
   val root = XML.loadFile(res)
@@ -23,5 +25,5 @@ TaskKey[Unit]("verify-res-values") <<= (
 
 TaskKey[Unit]("check-global-aar") := Def.task {
   val path = Path.userHome / ".android/sbt/exploded-aars/com.google.android.gms-play-services-4.3.23/com.google.android.gms-play-services-4.3.23.jar"
-  if (!path.isFile) android.Plugin.fail("path does not exist: " + path)
+  if (!path.isFile) android.fail("path does not exist: " + path)
 }

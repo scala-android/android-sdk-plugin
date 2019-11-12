@@ -1,12 +1,12 @@
-> check-target-api
-> check-support-mode
+> checkTargetApi
+> checkSupportMode
 > android:package
-# > android:package-aar
+# > android:packageAar
 $ exists target/android/output/renderscript-support-v8-debug.apk
 # $ exists target/android/output/renderscript-support-v8.aar
-> check-apk-for-resource
-#> check-aar-for-resource
-# > check-aar-for-libs
-> check-apk-for-libs
+> checkApkForResource
+#> checkAarForResource
+# > checkAarForLibs
+> checkApkForLibs
 > last android:apkbuild
-> show list-apk
+> show listApk

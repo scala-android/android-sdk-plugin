@@ -2,6 +2,6 @@
 $ exists target/android/output/hello-world-debug.apk
 $ exists target/android/generated/source/com/example/app/TR.scala
 $ exists target/android/intermediates/proguard/classes.proguard.jar
-> check-dex
-> check-tr
-> check-resource
+> checkDex
+> checkTr
+> checkResource

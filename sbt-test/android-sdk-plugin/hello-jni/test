@@ -1,6 +1,6 @@
 > android:package
 $ exists bin/output/hello-jni-debug.apk
-> javah-finder
+> javahFinder
 $ exists bin/generated/source/com_example_hellojni_HelloJni.h
 > android:test
 > android:uninstall
