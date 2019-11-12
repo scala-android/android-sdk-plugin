@@ -22,13 +22,13 @@ def gitTag = "deadbeef"
 def gitCommitCount = 100
 
 android {
-    compileSdkVersion 23
+    compileSdkVersion 26
     buildToolsVersion '25.0.2'
 
     defaultConfig {
         applicationId "io.plaidapp"
         minSdkVersion 21
-        targetSdkVersion 23
+        targetSdkVersion 26
         versionCode gitCommitCount
         versionName gitTag
         buildConfigField "String", "GIT_SHA", "\"${gitSha}\""
