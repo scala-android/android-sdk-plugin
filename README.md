@@ -48,7 +48,7 @@ found on the #sbt-android IRC channel on Freenode, or the
 [scala-android/sbt-android gitter](https://gitter.im/scala-android/sbt-android)
 
 ## Example projects ##
-
+* A minimal setup : https://github.com/doofin/scala4Android
 * A growing collection of tests can be found under
   [sbt-test/android-sdk-plugin/](sbt-test/android-sdk-plugin).
   These projects are examples of how to use the plugin in various
