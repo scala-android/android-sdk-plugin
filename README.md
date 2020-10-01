@@ -23,17 +23,17 @@ all future updates can be accessed by using
 This is an easy-to-use plugin for existing and newly created android
 projects. It requires SBT 0.13.8+
 
-The plugin supports all android projects configurations. 3rd party libraries
+The plugin supports all android project configurations. 3rd party libraries
 can be included by placing them in `libs`, or they can be added by using sbt's
-`libraryDependencies` feature. This build plugin is 100% compatible with
+`library dependencies` feature. This build plugin is 100% compatible with
 the standard Android build system due to the use of the same underlying
 `com.android.tools.build:builder` implementation.
 
 NOTE: proguard 5.1 does not like old versions of scala. Projects that wish
-to use Proguard 5.1 or newer with Scala should use `scalaVersion := "2.11.5"`
+to use Proguard 5.1 or newer with Scala should use `ScalaVersion := "2.11.5"`
 or newer. For compatible scala projects and java-based projects which wish to
 use proguard 5.1 (to fix issues around generic types being removed from
-base-classes) a workaround is to add this setting into your `build.sbt`:
+base-classes), a workaround is to add this setting into your `build.sbt`:
 `proguardVersion := "5.1"`.
 See [proguard bug #549](https://sourceforge.net/p/proguard/bugs/549/) and
 [SI-8931](https://issues.scala-lang.org/browse/SI-8931)
@@ -62,7 +62,7 @@ found on the #sbt-android IRC channel on Freenode, or the
 ## Usage ##
 
 1. Install sbt (from [scala-sbt.org](http://www.scala-sbt.org) or use your
-   local packaging system like macports, brew, etc.)
+   local packaging system like MacPorts, brew, etc.)
    * (OPTIONAL) Install the plugin globally by adding the following line
    in the file `~/.sbt/0.13/plugins/android.sbt`:
 
@@ -108,11 +108,11 @@ found on the #sbt-android IRC channel on Freenode, or the
    platformTarget := "android-24"
    ```
 
-   The Android Developer pages provides a [list of applicable version codes](https://developer.android.com/guide/topics/manifest/uses-sdk-element.html#ApiLevels).
+   The Android Developer pages provide a [list of applicable version codes](https://developer.android.com/guide/topics/manifest/uses-sdk-element.html#ApiLevels).
 
 7. Now you will be able to run SBT, some available commands in sbt are:
    * `compile`
-     * Compiles all the sources in the project, java and scala
+     * Compiles all the sources in the project, java, and scala
      * Compile output is automatically processed through proguard if there
        are any Scala sources, otherwise; it can be enabled manually.
    * `android:package-release`
@@ -151,8 +151,8 @@ found on the #sbt-android IRC channel on Freenode, or the
   * When loading a project into IntelliJ, it is required that the
     [`Android Support`](https://plugins.jetbrains.com/plugin/1792) and `Scala`
     plugins are installed.
-  * To ensure proper building, configure the IDE `Run` command to execute an SBT
-    `android:package` task instead of `Make` (remove the make entry); this is
+  * To ensure the proper building, configure the IDE `Run` command to execute an SBT
+    `android: package` task instead of `Make` (remove the make entry); this is
     found under `Run Configurations`.
   * The SBT plugin for IntelliJ is the one from
     [orfjackal/idea-sbt-plugin](https://github.com/orfjackal/idea-sbt-plugin).
@@ -163,8 +163,8 @@ found on the #sbt-android IRC channel on Freenode, or the
     are still several caveats:
     * The `idea-sbt-plugin` is still required to actually perform the build
     * `aar` resources do not show up in editor or autocomplete automatically
-      * They can be added manually, but must be added everytime the project
-        is refreshed from SBT (SBT toolwindow -> Refresh)
+      * They can be added manually but must be added every time the project
+        is refreshed from SBT (SBT tool window -> Refresh)
       * To add:
         1. `Project Structure` -> `Modules` -> `+` -> `Import Module`
         2. `$HOME/.android/sbt/exploded-aars/AAR-PACKAGE-FOLDER`
@@ -288,4 +288,4 @@ found on the #sbt-android IRC channel on Freenode, or the
   a workaround is possible if setting `minSdkVersion` to `21` is ok. With
   minSdk set to 21, also set `dexMulti := true` and
   `useProguardInDebug := false` to bypass proguard. This will allow junit4
-  tests written in scala to function.
+  tests are written in scala to function.
