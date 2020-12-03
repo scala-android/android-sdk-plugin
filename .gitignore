@@ -4,3 +4,4 @@ sbt-test/*/*/project/auto_plugins.sbt
 sbt-test/*/*/project/build.properties
 sbt-test/*/*/*/project/build.properties
 sbt-test/*/*/*/project/auto_plugins.sbt
+.idea/

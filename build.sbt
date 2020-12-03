@@ -1,6 +1,7 @@
 import ScriptedPlugin._
 
 val pluginVersion = "1.8.0-SNAPSHOT"
+val pluginVersionStable = "1.7.10"
 val gradleBuildVersion = "1.4.0-SNAPSHOT"
 
 val androidToolsVersion = "2.3.0"
@@ -79,10 +80,10 @@ val gradlebuild = project.in(file("gradle-build")).enablePlugins(BuildInfoPlugin
     val t = crossTarget.value
     val m = (managedClasspath in Compile).value
     val g = t / "gradle-tooling-api"
-    val apiJar = m.collect {
+    val apiJar = m.collectFirst {
       case j if j.get(moduleID.key).exists(_.organization == "org.gradle") &&
         j.get(moduleID.key).exists(_.name == "gradle-tooling-api") => j.data
-    }.headOption
+    }
     FileFunction.cached(streams.value.cacheDirectory / "gradle-tooling-api", FilesInfo.lastModified) { in =>
       in foreach (IO.unzip(_, g, { n: String => !n.startsWith("META-INF") }))
       (g ** "*.class").get.toSet
@@ -97,7 +98,7 @@ val gradlebuild = project.in(file("gradle-build")).enablePlugins(BuildInfoPlugin
   buildInfoKeys := Seq(name, version),
   buildInfoPackage := "android.gradle"
 ).settings(
-  addSbtPlugin("org.scala-android" % "sbt-android" % pluginVersion)
+  addSbtPlugin("org.scala-android" % "sbt-android" % pluginVersionStable)
 ).dependsOn(model % "compile-internal")
 
 name := "sbt-android"
@@ -106,7 +107,7 @@ organization := "org.scala-android"
 
 version := pluginVersion
 
-scalacOptions ++= Seq("-deprecation","-Xlint","-feature")
+scalacOptions ++= Seq("-deprecation", "-Xlint", "-feature", "-target:jvm-1.8")
 
 sourceDirectories in Compile := baseDirectory(b => Seq(b / "src")).value
 
